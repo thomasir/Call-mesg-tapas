@@ -1,0 +1,54 @@
+{
+  "name": "TAPAS Control Panel",
+  "description": "Telegram SMS / Call / WhatsApp OTP Bomber Bot",
+  "keywords": ["telegram", "bot", "python", "bomber"],
+  "repository": "https://github.com/uff-thomas/Call-mesg_tapas",
+  "stack": "heroku-26",
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "standard-2x"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "as": "DATABASE"
+    }
+  ],
+  "env": {
+    "BOT_TOKEN": {
+      "description": "Telegram Bot Token — get from @BotFather",
+      "required": true
+    },
+    "OWNER_ID": {
+      "description": "Your Telegram numeric User ID — get from @userinfobot",
+      "required": true
+    },
+    "LOG_CHANNEL_ID": {
+      "description": "Telegram channel ID for bot logs (e.g. -1001234567890). Set 0 to disable.",
+      "value": "0",
+      "required": false
+    },
+    "CHANNEL_USERNAME": {
+      "description": "Force-join channel username WITHOUT @ (leave blank to disable)",
+      "value": "",
+      "required": false
+    },
+    "CHANNEL_LINK": {
+      "description": "Force-join channel invite link (leave blank to disable)",
+      "value": "",
+      "required": false
+    },
+    "DB_NAME": {
+      "description": "SQLite DB filename — only used when DATABASE_URL is not set",
+      "value": "bot_data.db",
+      "required": false
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}

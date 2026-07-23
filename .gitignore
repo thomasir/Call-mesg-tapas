@@ -47,3 +47,15 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+*.env
+
+# Database — never commit SQLite files
+*.db
+*.sqlite
+*.sqlite3
