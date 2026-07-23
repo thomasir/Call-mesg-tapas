@@ -598,7 +598,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         is_subscribed = await check_subscription(user_id, context)
 
         if not is_subscribed:
-            await mark_channel_verified(user_id)
+            # User has not actually joined — tell them to join first
+            await query.answer("❌ You haven't joined yet!", show_alert=True)
+            try:
+                await query.edit_message_text(
+                    "◈━━━━━━━━━━━━━━━━━━━━━━━━━━━━◈\n"
+                    "🔒 𝗖𝗛𝗔𝗡𝗡𝗘𝗟 𝗩𝗘𝗥𝗜𝗙𝗜𝗖𝗔𝗧𝗜𝗢𝗡 𝗥𝗘𝗤𝗨𝗜𝗥𝗘𝗗\n"
+                    "◈━━━━━━━━━━━━━━━━━━━━━━━━━━━━◈\n\n"
+                    "◈ 𝗝𝗼𝗶𝗻 𝗼𝘂𝗿 𝗰𝗵𝗮𝗻𝗻𝗲𝗹 𝘁𝗼 𝘂𝘀𝗲 𝘁𝗵𝗲 𝗯𝗼𝘁 ◈\n"
+                    "𝘑𝘰𝘪𝘯 𝘵𝘩𝘦𝘯 𝘵𝘢𝘱 ✅ 𝘐'𝘷𝘦 𝘑𝘰𝘪𝘯𝘦𝘥 𝘣𝘦𝘭𝘰𝘸",
+                    reply_markup=get_join_keyboard()
+                )
+            except Exception:
+                pass
+            return
 
         await query.answer("✅ Verified! Welcome!")
         await add_user(user_id, user.full_name)
