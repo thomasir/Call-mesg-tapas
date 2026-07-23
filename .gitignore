@@ -52,6 +52,10 @@ celerybeat.pid
 # Replit
 .cache/
 .local/
+.agents/
+
+# Uploaded source archives are local-only
+attached_assets/
 
 # Expo
 .expo

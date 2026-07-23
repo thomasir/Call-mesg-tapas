@@ -2,7 +2,7 @@
   "name": "TAPAS Control Panel",
   "description": "Telegram SMS / Call / WhatsApp OTP Bomber Bot",
   "keywords": ["telegram", "bot", "python", "bomber"],
-  "repository": "https://github.com/uff-thomas/Call-mesg_tapas",
+  "repository": "https://github.com/thomasir/Call-mesg-tapas",
   "stack": "heroku-26",
   "formation": {
     "worker": {

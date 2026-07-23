@@ -1,1 +1,0 @@
-- [GitHub source-control picker](github-source-control-picker.md) — Replit's GitHub repository picker can require an account-level disconnect/reconnect when it shows stale repositories.

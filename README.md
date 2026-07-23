@@ -2,7 +2,7 @@
 
 > Telegram SMS · Call · WhatsApp OTP Bomber Bot
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/uff-thomas/Call-mesg_tapas)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/thomasir/Call-mesg-tapas)
 
 ---
 
