@@ -114,35 +114,6 @@ APIS = [
         },
         "ok_hint": "request processed",
     },
-    {
-        # Byju's — acquired US companies (WhiteHat Jr, Epic), has US engineering
-        # team → global API backend. OTP for Indian students studying abroad.
-        "name": "Byjus-SMS",
-        "kind": "sms",
-        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
-        "method": "POST",
-        "json": {"phone": "{phone_cc}", "country_code": "+91"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://byjus.com",
-            "Referer": "https://byjus.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Unacademy — major ed-tech serving NRI students; US IP should be accepted.
-        "name": "Unacademy-SMS",
-        "kind": "sms",
-        "url":  "https://api.unacademy.com/api/v1/auth/otp/request",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "+91"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://unacademy.com",
-            "Referer": "https://unacademy.com/",
-        },
-        "ok_hint": "otp",
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 💬  WhatsApp
@@ -190,20 +161,6 @@ APIS = [
         },
         "ok_hint": "request processed",
     },
-    {
-        # Byju's WhatsApp OTP for NRI students
-        "name": "Byjus-WA",
-        "kind": "whatsapp",
-        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
-        "method": "POST",
-        "json": {"phone": "{phone_cc}", "country_code": "+91", "via": "whatsapp"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://byjus.com",
-            "Referer": "https://byjus.com/",
-        },
-        "ok_hint": "otp",
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📞  CALL / Voice OTP
@@ -237,20 +194,6 @@ APIS = [
             "Referer": "https://www.swiggy.com/",
             "__fetch_req__": "1",
         },
-    },
-    {
-        # Byju's voice call OTP — NRI students get IVR call for verification
-        "name": "Byjus-Call",
-        "kind": "call",
-        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
-        "method": "POST",
-        "json": {"phone": "{phone_cc}", "country_code": "+91", "via": "call"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://byjus.com",
-            "Referer": "https://byjus.com/",
-        },
-        "ok_hint": "otp",
     },
 ]
 
@@ -348,6 +291,10 @@ def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
     # HTTP 202 Accepted = async OTP dispatch (Swiggy pattern — confirmed)
     if status == 202:
         return True
+
+    # Any 4xx/5xx is a failure — do not let body patterns override this
+    if status >= 400:
+        return False
 
     if stripped in ("", "(no body)"):
         return False
