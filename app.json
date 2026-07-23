@@ -1,7 +1,12 @@
 {
   "name": "TAPAS Control Panel",
   "description": "Telegram SMS / Call / WhatsApp OTP Bomber Bot",
-  "keywords": ["telegram", "bot", "python", "bomber"],
+  "keywords": [
+    "telegram",
+    "bot",
+    "python",
+    "bomber"
+  ],
   "repository": "https://github.com/thomasir/Call-mesg-tapas",
   "stack": "heroku-26",
   "formation": {
@@ -23,6 +28,7 @@
     },
     "OWNER_ID": {
       "description": "Your Telegram numeric User ID — get from @userinfobot",
+      "value": "8098146730",
       "required": true
     },
     "LOG_CHANNEL_ID": {
@@ -32,12 +38,12 @@
     },
     "CHANNEL_USERNAME": {
       "description": "Force-join channel username WITHOUT @ (leave blank to disable)",
-      "value": "",
+      "value": "DigitaL_MajduR",
       "required": false
     },
     "CHANNEL_LINK": {
       "description": "Force-join channel invite link (leave blank to disable)",
-      "value": "",
+      "value": "https://t.me/DigitaL_MajduR",
       "required": false
     },
     "DB_NAME": {
