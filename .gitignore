@@ -1,15 +1,61 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
-tmp
-out-tsc
+# Node / frontend
+node_modules/
+dist/
+build/
+tmp/
+out-tsc/
 *.tsbuildinfo
+coverage/
+npm-debug.log
+yarn-error.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+env/
+ENV/
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.pypirc
+
+# Local databases and generated runtime data
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3-journal
+celerybeat-schedule
+celerybeat.pid
+
+# Replit
+.cache/
+.local/
+
+# Expo
 .expo
 .expo-shared
-
-# dependencies
-node_modules
 
 # IDEs and editors
 /.idea
@@ -19,43 +65,37 @@ node_modules
 *.launch
 .settings/
 *.sublime-workspace
-
-# IDE - VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+# System files
 .DS_Store
 Thumbs.db
 
+# Miscellaneous tooling
+.sass-cache/
+.hypothesis/
+.tox/
+.nox/
+.ipynb_checkpoints/
+.pyre/
+.pytype/
+cython_debug/
+.spyproject/
+.ropeproject/
+.pdm-python
+.pdm-build/
+.pixi/
+__pypackages__/
+.abstra/
+tempCodeRunnerFile.py
+*.rdb
+*.aof
+*.pid
+
+# Project-specific local files
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
-
-# Replit
-.cache/
-.local/
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-.env
-*.env
-
-# Database — never commit SQLite files
-*.db
-*.sqlite
-*.sqlite3
